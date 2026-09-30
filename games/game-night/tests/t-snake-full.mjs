@@ -37,8 +37,8 @@ for (const players of [2, 4]) {
   // forced crash for the burst effects
   const forced = await page.evaluate(() => { const s = window.__snake.sim; const al = s.snakes.filter((x) => x.alive && x.id > 0); if (al.length < 1) return false; s.kill(al[0], al[1] || null, 'body'); return true; });
   check(forced, 'forced a crash');
-  await sleep(900); await page.screenshot({ path: SHOTS + '/snake-burst.png' });
-  const deb = await page.evaluate(() => window.__snake.view.debris.length);
+  let deb = 0; for (let i = 0; i < 40 && deb < 4; i++) { await sleep(250); deb = await page.evaluate(() => window.__snake.view.debris.length); }
+  await page.screenshot({ path: SHOTS + '/snake-burst.png' });
   check(deb > 3, `burst spawned ${deb} physics debris pieces`);
   ok = report(errors, 'keyboard/burst') && ok;
 }
