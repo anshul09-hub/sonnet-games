@@ -2,10 +2,10 @@
 import { Rng, clamp, wrapAngle } from '../core/util.js';
 
 export const CFG = {
-  R0: 30, RMIN: 10, SHRINK_AFTER: 34, SHRINK_TIME: 48,
+  R0: 22, RMIN: 8, SHRINK_AFTER: 20, SHRINK_TIME: 30,
   SPEED: 7.2, BOOST_SPEED: 12.5, TURN: 3.6, BOOST_TURN: 2.5, SPACING: 0.56, START_LEN: 9, MIN_LEN: 5,
   HEAD_R: 0.5, SEG_R: 0.42, EAT_R: 1.0, BOOST_COST: 1.15, // segments per second while boosting
-  ORBS: 46, COUNTDOWN: 3, ROUND_END: 2.6, WINS_NEEDED: 2,
+  ORBS: 34, COUNTDOWN: 3, ROUND_END: 2.6, WINS_NEEDED: 2,
 };
 
 export const COLORS = [0xff4d6d, 0x3ddc6a, 0xffd23f, 0x3aa0ff]; // fall-back player colours
@@ -167,7 +167,7 @@ export class SnakeSim {
   snapshot() {
     const q = (v) => Math.round(v * 20);
     return {
-      f: Math.round(this.time * 60), ph: this.phase, pt: Math.round(this.phaseT * 10) / 10, R: Math.round(this.R * 10) / 10, rd: this.round, tm: Math.round(this.time * 10) / 10,
+      f: Math.round(this.time * 60), ph: this.phase, mw: this.matchWinner ?? -1, rw: this.roundWinner ?? -1, pt: Math.round(this.phaseT * 10) / 10, R: Math.round(this.R * 10) / 10, rd: this.round, tm: Math.round(this.time * 10) / 10,
       s: this.snakes.map((s) => [s.alive ? 1 : 0, q(s.x), q(s.z), Math.round(s.ang * 100), Math.round(s.len * 10), s.boost ? 1 : 0, s.wins, s.kills, this.segments(s).slice(1).map((p) => [q(p.x), q(p.z)]).flat()]),
       o: this.orbs.map((o) => [o.id, q(o.x), q(o.z), o.big ? 1 : 0, o.hue, Math.max(0, Math.round((o.t0 - this.time) * 10))]),
     };

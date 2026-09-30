@@ -21,7 +21,7 @@ export function toon(color, opts = {}) {
   const key = color + '|' + (opts.emissive || 0) + '|' + (opts.emissiveIntensity || 0) + '|' + (opts.steps || 3) + '|' + (opts.transparent ? opts.opacity : 1) + '|' + (opts.side || 0) + '|' + (opts.flat ? 1 : 0) + '|' + (opts.vertexColors ? 1 : 0);
   let m = _matCache.get(key);
   if (!m) {
-    m = new THREE.MeshToonMaterial({ color, gradientMap: ramp(opts.steps || 3), emissive: opts.emissive || 0x000000, emissiveIntensity: opts.emissiveIntensity ?? 1, transparent: !!opts.transparent, opacity: opts.opacity ?? 1, side: opts.side ?? THREE.FrontSide, flatShading: !!opts.flat, vertexColors: !!opts.vertexColors });
+    m = new THREE.MeshToonMaterial({ color, gradientMap: ramp(opts.steps || 3), emissive: opts.emissive || 0x000000, emissiveIntensity: opts.emissiveIntensity ?? 1, transparent: !!opts.transparent, opacity: opts.opacity ?? 1, side: opts.side ?? THREE.FrontSide, vertexColors: !!opts.vertexColors });
     _matCache.set(key, m);
   }
   return m;

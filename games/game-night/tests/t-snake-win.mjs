@@ -1,0 +1,10 @@
+import { startStatic, launch, newPage, report, sleep, SHOTS, startGame } from './lib.mjs';
+const { srv, url } = await startStatic(); const browser = await launch(); const errors = [];
+const { page } = await newPage(browser, { errors });
+await page.goto(url + `?q=medium&dyn=0&scene=${process.env.SCENE || 'meadow'}&speed=12`); await page.waitForSelector('.hub');
+await startGame(page, 'snake', { players: 3, level: 'hard' });
+await page.evaluate(() => window.__snake.autoplay(true));
+await page.waitForFunction(() => window.__snake.rs.ph === 'over', null, { timeout: 170000 });
+await page.evaluate(() => window.__snake.setSpeed(1));
+await sleep(6000); await page.screenshot({ path: SHOTS + `/snake-win-${process.env.SCENE || 'meadow'}.png` });
+report(errors, 'snake win'); await browser.close(); srv.close();

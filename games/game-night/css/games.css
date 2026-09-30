@@ -46,3 +46,16 @@ table.stats td { padding: 4px; border-top: 1px solid rgba(255,255,255,.1); font-
 table.stats td.nm { text-align: left; display: flex; align-items: center; gap: 6px; }
 table.stats tr.w td { color: var(--y); }
 @media (max-width: 760px), (max-aspect-ratio: 1/1) { .lp-row { right: calc(58px + var(--safe-r)); } .lp { padding: 3px 8px 3px 3px; gap: 5px; } .lp-name { font-size: .7rem; max-width: 5em; } .lp .lp-av svg { width: 34px; height: 34px; } .lp .lp-av, .lp .badge-wrap { width: 34px !important; height: 34px !important; } .lp-pips i { width: 8px; height: 8px; } }
+
+/* ---- Snake Arena HUD ---- */
+.lp-len { font-size: .7rem; font-weight: 900; opacity: .85; letter-spacing: .02em; white-space: nowrap; }
+.lp.dead { opacity: .45; filter: grayscale(.7); }
+.sn-chip { position: absolute; left: 50%; top: calc(72px + var(--safe-t)); transform: translateX(-50%); padding: .3em 1.1em; border-radius: 40px; background: rgba(20,12,56,.72); border: 2px solid #6c4df0; font-size: .78rem; font-weight: 900; letter-spacing: .08em; pointer-events: none !important; white-space: nowrap; transition: background .3s, border-color .3s; }
+.sn-chip.danger { background: rgba(120,10,20,.85); border-color: #ff4d6d; animation: urgent .5s infinite alternate; }
+.sn-feed { position: absolute; right: calc(10px + var(--safe-r)); top: calc(100px + var(--safe-t)); display: flex; flex-direction: column; gap: 5px; align-items: flex-end; pointer-events: none !important; }
+.sn-feed-item { padding: .3em .9em; border-radius: 30px; background: rgba(12,8,36,.78); font-size: .78rem; font-weight: 800; transition: opacity .5s, transform .5s; animation: feedin .3s cubic-bezier(.2,1.4,.3,1); }
+.sn-feed-item.out { opacity: 0; transform: translateX(30px); }
+@keyframes feedin { from { opacity: 0; transform: translateX(40px) scale(.8); } to { opacity: 1; transform: none; } }
+.sn-hint { position: absolute; left: 50%; bottom: calc(14px + var(--safe-b)); transform: translateX(-50%) translateY(10px); padding: .5em 1.2em; border-radius: 40px; background: rgba(20,12,56,.82); border: 2px solid #6c4df0; font-size: .82rem; opacity: 0; transition: all .3s; pointer-events: none !important; text-align: center; max-width: 94vw; }
+.sn-hint.on { opacity: 1; transform: translateX(-50%); }
+@media (max-width: 760px), (max-aspect-ratio: 1/1) { .sn-chip { top: calc(120px + var(--safe-t)); font-size: .68rem; } .sn-feed { top: calc(152px + var(--safe-t)); } .lp-len { font-size: .6rem; } }
