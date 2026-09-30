@@ -107,11 +107,11 @@ class BrawlGame {
   renderFromSim() {
     const sim = this.sim, q = (v) => v;
     const o = []; for (const e of sim.props.values()) { if (!e.alive) continue; const t = e.body.translation(), r = e.body.rotation(); o.push({ id: e.id, x: t.x, y: t.y, z: t.z, qx: r.x, qy: r.y, qz: r.z, qw: r.w, hp: e.hp }); }
-    const wl = []; for (const w of sim.walls.values()) if (w.alive && w.hp < w.maxHp) wl.push([w.id, w.hp]);
+    const wl = [], wd = []; for (const w of sim.walls.values()) { if (!w.alive) wd.push(w.id); else if (w.hp < w.maxHp) wl.push([w.id, w.hp]); }
     return {
       ph: sim.phase, pt: sim.phaseT, tm: sim.time, w: sim.winner ?? -1,
       p: sim.players.map((p) => ({ alive: p.alive, x: p.x, z: p.z, yaw: p.yaw, hp: p.hp, wid: CFG.W[p.weapon].id, ammo: p.ammo === Infinity ? -1 : p.ammo, shield: p.shield > 0, speed: p.speedT > 0, inv: p.invuln > 0, kos: p.kos, deaths: p.deaths, dashCd: p.dashCd, respawn: p.respawnT, vx: p.vx, vz: p.vz })),
-      b: sim.bullets.map((b) => ({ id: b.id, x: b.x, z: b.z, a: b.a, w: CFG.W[b.w].id, o: b.owner })), o, wl, u: sim.pickups.map((u) => [u.id, u.kind, u.x, u.z]),
+      b: sim.bullets.map((b) => ({ id: b.id, x: b.x, z: b.z, a: b.a, w: CFG.W[b.w].id, o: b.owner })), o, wl, wd, u: sim.pickups.map((u) => [u.id, u.kind, u.x, u.z]),
     };
   }
 
@@ -122,7 +122,7 @@ class BrawlGame {
       p: d.p.map((r) => ({ alive: r[0] === 1, x: r[1] / 100, z: r[2] / 100, yaw: r[3] / 100, hp: r[4], wid: r[5], ammo: r[6], shield: r[7] === 1, speed: r[8] === 1, inv: r[9] === 1, kos: r[10], deaths: r[11], dashCd: r[12] / 10, respawn: r[13] / 10, vx: r[14] / 100, vz: r[15] / 100 })),
       b: d.b.map((r) => ({ id: r[0], x: r[1] / 100, z: r[2] / 100, a: r[3] / 100, w: r[4], o: r[5] })),
       o: d.o.map((r) => ({ id: r[0], x: r[1] / 100, y: r[2] / 100, z: r[3] / 100, qx: r[4] / 1000, qy: r[5] / 1000, qz: r[6] / 1000, qw: r[7] / 1000, hp: r[8] })),
-      wl: d.wl, u: d.u.map((r) => [r[0], r[1], r[2] / 100, r[3] / 100]),
+      wl: d.wl, wd: d.wd || [], u: d.u.map((r) => [r[0], r[1], r[2] / 100, r[3] / 100]),
     };
   }
   guestUpdate() {

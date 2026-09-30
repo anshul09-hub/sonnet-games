@@ -12,8 +12,8 @@ const B = await newPage(browser, { errors: eB, logs: !!process.env.LOGS, touch: 
 let ok = true; const check = (c, m) => { console.log((c ? '✓ ' : '✗ ') + m); if (!c) ok = false; };
 await A.page.goto(url + Q); await A.page.waitForSelector('.hub');
 await sleep(1500);
-// A: open Ludo -> Online -> Create
-await A.page.evaluate(() => window.__gn.app.current.openGame('ludo'));
+// A: open Snake -> Online -> Create
+await A.page.evaluate(() => window.__gn.app.current.openGame('snake'));
 await A.page.click('#mode-online'); await A.page.click('#btn-create');
 await A.page.waitForSelector('#room-code', { timeout: 20000 });
 const code = (await A.page.$$eval('#room-code span', (els) => els.map((e) => e.textContent).join('')));
@@ -34,18 +34,18 @@ await A.page.screenshot({ path: SHOTS + '/lobby-host.png' });
 const startDis = await A.page.$eval('#btn-start', (b) => b.disabled);
 check(!startDis, 'start enabled with 2 humans');
 await A.page.click('#btn-start');
-await A.page.waitForSelector('#stub', { timeout: 20000 }); await B.page.waitForSelector('#stub', { timeout: 20000 });
-await sleep(1500);
-const tA = await A.page.evaluate(() => window.__stub.tick), tB = await B.page.evaluate(() => window.__stub.tick);
-check(tB > 0 && Math.abs(tA - tB) < 12, `guest receives host ticks (host ${tA}, guest ${tB})`);
-const inputs = await A.page.evaluate(() => window.__stub.inputs);
-check(inputs > 0, 'host receives guest inputs: ' + inputs);
+await A.page.waitForFunction(() => window.__snake && window.__snake.game, null, { timeout: 30000 }); await B.page.waitForFunction(() => window.__snake && window.__snake.game && window.__snake.rs, null, { timeout: 30000 });
+await A.page.waitForFunction(() => window.__snake.rs.ph === 'play', null, { timeout: 30000 });
+const tA = await A.page.evaluate(() => window.__snake.rs.tm), tB = await B.page.evaluate(() => window.__snake.rs.tm);
+check(tB >= 0 && Math.abs(tA - tB) < 6, `guest receives host state (host t=${tA}, guest t=${tB})`);
+await B.page.keyboard.down('KeyD'); await sleep(900); const inputs = await A.page.evaluate(() => window.__snake.sim.snakes[1].steer); await B.page.keyboard.up('KeyD');
+check(inputs === 1, 'host receives guest inputs: steer=' + inputs);
 // drop B: close its page connection by killing the page (simulates network loss)
 const clientId = await B.page.evaluate(() => JSON.parse(localStorage.getItem('gn.clientId')));
 await B.page.close();
 const tDrop = Date.now();
 let away = [];
-for (let i = 0; i < 60; i++) { away = await A.page.evaluate(() => [0, 1].map((k) => window.__stub.session.botControlled(k))); if (away[1]) break; await sleep(500); }
+for (let i = 0; i < 60; i++) { away = await A.page.evaluate(() => [0, 1].map((k) => window.__snake.game.session.botControlled(k))); if (away[1]) break; await sleep(500); }
 console.log('  (drop detected after ' + ((Date.now() - tDrop) / 1000).toFixed(1) + 's)');
 check(away[1] === true && away[0] === false, 'bot takes the dropped guest seat: ' + JSON.stringify(away));
 // rejoin in a new page of the same context (same localStorage => same clientId) -> use context of B
@@ -54,12 +54,12 @@ B2.on('pageerror', (e) => eB.push('pageerror ' + e.message)); B2.on('console', (
 await B2.goto(url + Q); await B2.waitForSelector('.rejoin-banner', { timeout: 20000 });
 check(true, 'rejoin banner is offered');
 await B2.click('.rejoin-banner .btn.g');
-await B2.waitForSelector('#stub', { timeout: 25000 });
+await B2.waitForFunction(() => window.__snake && window.__snake.game && window.__snake.rs, null, { timeout: 30000 });
 await sleep(1500);
-const back = await A.page.evaluate(() => [0, 1].map((k) => window.__stub.session.botControlled(k)));
+const back = await A.page.evaluate(() => [0, 1].map((k) => window.__snake.game.session.botControlled(k)));
 check(back[1] === false, 'seat handed back to the human after rejoin');
-const tick2 = await B2.evaluate(() => window.__stub.tick);
-check(tick2 > tA, 'rejoined guest is receiving state again (tick ' + tick2 + ')');
+const tick2 = await B2.evaluate(() => window.__snake.rs.tm);
+check(tick2 > tA, 'rejoined guest is receiving state again (t=' + tick2 + ')');
 await B2.screenshot({ path: SHOTS + '/rejoin.png' });
 ok = report(eA, 'host page') && ok; ok = report(eB, 'guest page') && ok;
 await browser.close(); srv.close(); peer.close?.();

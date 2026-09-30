@@ -148,11 +148,15 @@ export class BrawlView {
   on_hitprop(ev) { this.flash.set(ev.id, 1); if (!this.fast) this.fx.sparks(_p.set(ev.x, 0.7, ev.z), 5, 0xffd8a0, 3.5); }
   on_hitwall(ev) { const m = this.arena.wallMesh.get(ev.id); if (m) { m.userData.flash = 1; m.userData.hp = ev.hp; } if (!this.fast) { this.fx.dust(_p.set(ev.x, 1.0, ev.z), 4, 0xd8cdb4); this.fx.sparks(_p.set(ev.x, 1.0, ev.z), 5, 0xffd8a0, 3); } audio.sfx('crack', { v: 0.25 }); }
 
+  removeWall(id) {
+    const m = this.arena.wallMesh.get(id); if (m) { this.scene.remove(m); if (m.userData.cap) this.scene.remove(m.userData.cap); if (m.userData.band) this.scene.remove(m.userData.band); this.arena.wallMesh.delete(id); }
+    const bd = this.wallBody.get(id); if (bd) { this.phys.remove(bd); this.wallBody.delete(id); }
+  }
+
   on_break(ev) {
     const M = this.arena.mats;
     if (ev.kind === 'wall') {
-      const m = this.arena.wallMesh.get(ev.id); if (m) { this.scene.remove(m); if (m.userData.cap) this.scene.remove(m.userData.cap); if (m.userData.band) this.scene.remove(m.userData.band); this.arena.wallMesh.delete(ev.id); }
-      const bd = this.wallBody.get(ev.id); if (bd) { this.phys.remove(bd); this.wallBody.delete(ev.id); }
+      this.removeWall(ev.id);
       if (!this.fast) { this.debrisBurst(ev.x, ev.y, ev.z, 22, [0.28, 0.5], M.wallDebris, 6, 5, ev.w, ev.d); this.fx.dust(_p.set(ev.x, 1, ev.z), 18, 0xcbbfa4); this.fx.smoke(_p.set(ev.x, 1, ev.z), 4, 0x998877, 1.2); }
       this.rig.shake(0.3); audio.sfx('crack', { v: 0.7 }); audio.sfx('smash', { v: 0.35 });
     } else if (ev.kind === 'crate') {
@@ -312,6 +316,7 @@ export class BrawlView {
   }
 
   drawWalls(rs, dt) {
+    for (const id of rs.wd || []) if (this.arena.wallMesh.has(id)) this.removeWall(id);
     for (const [id, hp] of rs.wl || []) { const m = this.arena.wallMesh.get(id); if (m) m.userData.hp = hp; }
     for (const m of this.arena.wallMesh.values()) {
       if (m.userData.hard) continue; const f = clamp((m.userData.hp ?? m.userData.max) / m.userData.max, 0, 1), fl = m.userData.flash = Math.max(0, (m.userData.flash || 0) - dt * 6);

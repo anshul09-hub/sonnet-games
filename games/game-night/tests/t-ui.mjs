@@ -6,7 +6,7 @@ let ok = true; const check = (c, m) => { console.log((c ? '✓ ' : '✗ ') + m);
 // ---- phone portrait
 {
   const errors = [];
-  const { page } = await newPage(browser, { errors, width: 390, height: 844, dpr: 2, touch: true });
+  const { page } = await newPage(browser, { errors, width: 390, height: 844, dpr: 1, touch: true });
   await page.goto(url + '?q=low&dyn=0'); await page.waitForSelector('.hub'); await sleep(3000);
   await page.screenshot({ path: SHOTS + '/hub-mobile.png' });
   check(await page.$eval('#hub-nav', (e) => getComputedStyle(e).display !== 'none'), 'portrait shows PLAY/nav buttons');
@@ -14,8 +14,8 @@ let ok = true; const check = (c, m) => { console.log((c ? '✓ ' : '✗ ') + m);
   await page.screenshot({ path: SHOTS + '/mode-mobile.png' });
   await page.click('#mode-bot'); await page.waitForSelector('#btn-start-bots');
   await page.click('#lvl-hard'); await page.screenshot({ path: SHOTS + '/bots-mobile.png' });
-  await page.click('#btn-start-bots'); await page.waitForSelector('#stub', { timeout: 20000 });
-  const cfg = await page.evaluate(() => window.__stub.session.cfg);
+  await page.click('#btn-start-bots'); await page.waitForFunction(() => (window.__snake || window.__ludo || window.__brawl), null, { timeout: 150000 });
+  const cfg = await page.evaluate(() => (window.__snake || window.__ludo || window.__brawl).game.session.cfg);
   check(cfg.seats.length === 4 && cfg.seats.filter((s) => s.kind === 'bot').length === 3 && cfg.seats[1].level === 'hard', 'vs-bots session: 1 human + 3 hard bots');
   ok = report(errors, 'phone') && ok;
   await page.context().close();
@@ -28,10 +28,10 @@ let ok = true; const check = (c, m) => { console.log((c ? '✓ ' : '✗ ') + m);
   await page.evaluate(() => window.__gn.app.current.openGame('snake'));
   await page.click('#mode-local'); await page.waitForSelector('#btn-start-local');
   await page.screenshot({ path: SHOTS + '/local-setup.png' });
-  await page.click('#btn-start-local'); await page.waitForSelector('#stub', { timeout: 20000 });
-  const cfg = await page.evaluate(() => window.__stub.session.cfg);
+  await page.click('#btn-start-local'); await page.waitForFunction(() => window.__snake && window.__snake.game, null, { timeout: 150000 });
+  const cfg = await page.evaluate(() => window.__snake.game.session.cfg);
   check(cfg.game === 'snake' && cfg.seats.length === 2 && cfg.seats.every((s) => s.kind === 'human'), 'local session: 2 humans');
-  await page.evaluate(() => window.__gn.app.exitToHub(window.__stub.session)); await page.waitForSelector('.hub');
+  await page.evaluate(() => window.__gn.app.exitToHub(window.__snake.game.session)); await page.waitForSelector('.hub');
   // settings + quality
   await page.click('button[aria-label=Settings]'); await page.waitForSelector('.sheet');
   await page.click('text=Medium'); const lvl = await page.evaluate(() => window.__gn.engine.level);

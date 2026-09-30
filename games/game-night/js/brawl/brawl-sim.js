@@ -413,7 +413,7 @@ export class BrawlSim {
       f: this.frame, ph: this.phase, pt: Math.round(this.phaseT * 10) / 10, tm: Math.round(this.time), w: this.winner ?? -1,
       p: this.players.map((p) => [p.alive ? 1 : 0, q(p.x), q(p.z), Math.round(p.yaw * 100), Math.round(p.hp), CFG.W[p.weapon].id, p.ammo === Infinity ? -1 : p.ammo, p.shield > 0 ? 1 : 0, p.speedT > 0 ? 1 : 0, p.invuln > 0 ? 1 : 0, p.kos, p.deaths, Math.round(p.dashCd * 10), Math.round(p.respawnT * 10), q(p.vx), q(p.vz)]),
       b: this.bullets.map((b) => [b.id, q(b.x), q(b.z), Math.round(b.a * 100), CFG.W[b.w].id, b.owner]),
-      o: props, wl: walls, u: this.pickups.map((u) => [u.id, u.kind, q(u.x), q(u.z)]),
+      o: props, wl: walls, wd: [...this.walls.values()].filter((w) => !w.alive).map((w) => w.id), u: this.pickups.map((u) => [u.id, u.kind, q(u.x), q(u.z)]),
     };
   }
   drainEvents() { const e = this.events; this.events = []; return e; }

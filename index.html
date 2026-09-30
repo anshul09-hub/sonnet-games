@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sonnet Games</title>
+<style>
+  :root { color-scheme: dark; --bg1: #150b3a; --bg2: #2a1466; --ink: #fff; --muted: #b9aef0; }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; font-family: "Arial Rounded MT Bold", "Nunito", system-ui, sans-serif; color: var(--ink); background: radial-gradient(1200px 700px at 20% -10%, #4a2bb5 0%, transparent 60%), radial-gradient(900px 600px at 100% 10%, #0c7a9a 0%, transparent 55%), linear-gradient(var(--bg2), var(--bg1)); }
+  main { max-width: 1040px; margin: 0 auto; padding: 48px 20px 64px; }
+  h1 { font-size: clamp(2rem, 6vw, 3.4rem); margin: 0 0 6px; letter-spacing: .02em; text-shadow: 0 6px 0 rgba(0, 0, 0, .3); }
+  p.sub { margin: 0 0 32px; color: var(--muted); font-size: 1.05rem; }
+  .grid { display: grid; gap: 22px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+  a.card { display: block; text-decoration: none; color: inherit; border-radius: 28px; overflow: hidden; background: linear-gradient(#35208f, #1d1050); border: 3px solid #6c4df0; box-shadow: 0 0 0 4px #150c3a, 0 18px 40px rgba(0, 0, 0, .45); transition: transform .2s cubic-bezier(.2, 1.4, .3, 1), box-shadow .2s; }
+  a.card:hover, a.card:focus-visible { transform: translateY(-6px) rotate(-.6deg) scale(1.02); box-shadow: 0 0 0 4px #150c3a, 0 26px 50px rgba(0, 0, 0, .55), 0 0 40px rgba(124, 92, 255, .55); outline: none; }
+  .art { height: 190px; position: relative; display: grid; place-items: center; background: radial-gradient(circle at 50% 120%, #ff7eb6 0%, transparent 55%), linear-gradient(135deg, #20c997, #7a5cff 55%, #ff9a3c); overflow: hidden; }
+  .art::before { content: ""; position: absolute; inset: -40%; background: repeating-conic-gradient(from 0deg, rgba(255, 255, 255, .12) 0 8deg, transparent 8deg 16deg); animation: spin 30s linear infinite; }
+  @keyframes spin { to { transform: rotate(1turn); } }
+  .art span { position: relative; font-size: 2.6rem; font-weight: 900; -webkit-text-stroke: 5px #2a1470; paint-order: stroke fill; color: #fff; text-shadow: 0 6px 0 rgba(0, 0, 0, .3); text-align: center; line-height: 1; transform: rotate(-4deg); }
+  .art span b { display: block; color: #ffd23f; }
+  .body { padding: 16px 18px 20px; }
+  .body h2 { margin: 0 0 6px; font-size: 1.35rem; }
+  .body p { margin: 0 0 12px; color: var(--muted); line-height: 1.4; font-size: .95rem; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tags i { font-style: normal; font-size: .72rem; font-weight: 800; letter-spacing: .05em; padding: .25em .8em; border-radius: 99px; background: rgba(255, 255, 255, .12); }
+  .play { display: inline-block; margin-top: 14px; padding: .55em 1.4em; border-radius: 40px; background: linear-gradient(#ffe066, #ffb400); color: #3a2400; font-weight: 900; box-shadow: 0 5px 0 #b37a00; }
+  @media (prefers-reduced-motion: reduce) { .art::before { animation: none; } a.card { transition: none; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Sonnet Games</h1>
+  <p class="sub">Small games, one prompt each.</p>
+  <div class="grid">
+    <a class="card" href="games/game-night/" aria-label="Play Game Night 3D">
+      <div class="art"><span>GAME<b>NIGHT</b></span></div>
+      <div class="body">
+        <h2>Game Night 3D</h2>
+        <p>A mobile-style 3D game hub: Ludo with real physics dice and savage captures, Snake Arena and Blaster Brawl. Online rooms, local pass-and-play, bots, and a full Customize screen.</p>
+        <div class="tags"><i>LUDO</i><i>SNAKE ARENA</i><i>BLASTER BRAWL</i><i>ONLINE</i><i>PHONE + DESKTOP</i></div>
+        <span class="play">Play</span>
+      </div>
+    </a>
+  </div>
+</main>
+</body>
+</html>
