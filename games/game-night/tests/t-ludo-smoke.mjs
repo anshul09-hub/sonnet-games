@@ -1,0 +1,10 @@
+import { startStatic, launch, newPage, report, sleep, SHOTS, startLudo } from './lib.mjs';
+const { srv, url } = await startStatic(); const browser = await launch();
+const errors = [];
+const { page } = await newPage(browser, { errors, width: +process.env.W || 1280, height: +process.env.H || 720, logs: !!process.env.LOGS });
+await page.goto(url + `?q=${process.env.Q || 'low'}&dyn=0&scene=${process.env.SCENE || 'meadow'}&speed=${process.env.SPEED || 1}${process.env.NORENDER ? '&norender=1' : ''}`); await page.waitForSelector('.hub');
+await startLudo(page, { players: +process.env.PLAYERS || 2, level: 'hard' });
+await sleep(+process.env.WAIT || 6000);
+await page.screenshot({ path: SHOTS + '/ludo-smoke.png' });
+console.log(JSON.stringify(await page.evaluate(() => ({ turn: window.__ludo.state.turn, phase: window.__ludo.state.phase, rolls: window.__ludo.state.rolls, tokens: window.__ludo.state.tokens }))));
+report(errors, 'ludo smoke'); await browser.close(); srv.close();

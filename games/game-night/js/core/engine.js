@@ -5,15 +5,16 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { store, params, clamp } from './util.js';
 
 /**
  * Quality tiers. `detail` scales scenery/particle counts everywhere so every game respects the setting.
  */
 export const QUALITY = {
-  low:    { dpr: 1.0, shadow: 1024, shadowType: 'pcf',     composer: false, bloom: false, msaa: 0, smaa: false, detail: 0.35, outlines: false, maxParticles: 900 },
-  medium: { dpr: 1.5, shadow: 2048, shadowType: 'pcfsoft', composer: true,  bloom: true,  bloomScale: 0.5,  msaa: 0, smaa: true,  detail: 0.7,  outlines: true,  maxParticles: 2500 },
-  high:   { dpr: 2.0, shadow: 2048, shadowType: 'pcfsoft', composer: true,  bloom: true,  bloomScale: 0.75, msaa: 4, smaa: true,  detail: 1.0,  outlines: true,  maxParticles: 5000 },
+  low:    { dpr: 1.0, shadow: 1024, shadowType: 'pcf',     composer: false, bloom: false, msaa: 0, smaa: false, detail: 0.35, outlines: false, maxParticles: 900,  env: false, grade: false, shafts: false },
+  medium: { dpr: 1.5, shadow: 2048, shadowType: 'pcfsoft', composer: true,  bloom: true,  bloomScale: 0.5,  msaa: 0, smaa: true,  detail: 0.7,  outlines: true,  maxParticles: 2500, env: true,  grade: true,  shafts: true },
+  high:   { dpr: 2.0, shadow: 4096, shadowType: 'pcfsoft', composer: true,  bloom: true,  bloomScale: 0.75, msaa: 4, smaa: true,  detail: 1.0,  outlines: true,  maxParticles: 5000, env: true,  grade: true,  shafts: true },
 };
 
 export function defaultQuality() {
@@ -27,6 +28,25 @@ export function defaultQuality() {
   if (mobile) return cores >= 6 && mem >= 4 ? 'medium' : 'low';
   return cores >= 4 ? 'high' : 'medium';
 }
+
+const GRADE = {
+  uniforms: { tDiffuse: { value: null }, uVig: { value: 0.32 }, uSat: { value: 1.08 }, uCon: { value: 1.05 }, uAb: { value: 0 }, uTime: { value: 0 }, uGrain: { value: 0.018 }, uTint: { value: new THREE.Vector3(1, 1, 1) } },
+  vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+  fragmentShader: `uniform sampler2D tDiffuse; uniform float uVig,uSat,uCon,uAb,uTime,uGrain; uniform vec3 uTint; varying vec2 vUv;
+    float h21(vec2 p){ return fract(sin(dot(p, vec2(12.9898,78.233))) * 43758.5453); }
+    void main(){
+      vec2 c = vUv - 0.5; float d = length(c);
+      vec2 off = c * uAb * (0.4 + d);
+      vec3 col = vec3(texture2D(tDiffuse, vUv + off).r, texture2D(tDiffuse, vUv).g, texture2D(tDiffuse, vUv - off).b);
+      float l = dot(col, vec3(0.299, 0.587, 0.114));
+      col = mix(vec3(l), col, uSat);
+      col = (col - 0.5) * uCon + 0.5;
+      col *= uTint;
+      col *= 1.0 - uVig * smoothstep(0.32, 0.95, d * 1.3);
+      col += (h21(vUv * 900.0 + uTime) - 0.5) * uGrain;
+      gl_FragColor = vec4(col, 1.0);
+    }`,
+};
 
 export class Engine {
   constructor(canvas) {
@@ -60,7 +80,7 @@ export class Engine {
     const r = this.renderer;
     r.shadowMap.type = this.cfg.shadowType === 'pcfsoft' ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
     if (this.composer) { this.composer.dispose?.(); this.composer = null; }
-    this.renderPass = this.bloomPass = this.smaaPass = this.outputPass = null;
+    this.renderPass = this.bloomPass = this.smaaPass = this.outputPass = this.gradePass = null; this.gradeU = null;
     if (this.cfg.composer) {
       const size = r.getDrawingBufferSize(new THREE.Vector2());
       const rt = new THREE.WebGLRenderTarget(size.x || 2, size.y || 2, { type: THREE.HalfFloatType, samples: this.cfg.msaa, colorSpace: THREE.LinearSRGBColorSpace });
@@ -73,6 +93,7 @@ export class Engine {
       }
       this.outputPass = new OutputPass();
       this.composer.addPass(this.outputPass);
+      if (this.cfg.grade) { this.gradePass = new ShaderPass(GRADE); this.composer.addPass(this.gradePass); this.gradeU = this.gradePass.uniforms; }
       if (this.cfg.smaa) {
         this.smaaPass = new SMAAPass(2, 2);
         this.composer.addPass(this.smaaPass);
@@ -136,9 +157,32 @@ export class Engine {
     this.portrait = this.aspect < 1;
   }
 
+  /** Colour grading: vignette, saturation, contrast, tint, film grain. */
+  setGrade({ vig = 0.32, sat = 1.08, con = 1.05, grain = 0.018, tint = [1, 1, 1] } = {}) { this.gradeTarget = { vig, sat, con, grain, tint }; const u = this.gradeU; if (u) { u.uVig.value = vig; u.uSat.value = sat; u.uCon.value = con; u.uGrain.value = grain; u.uTint.value.set(...tint); } }
+  /** Brief chromatic-aberration pulse (impacts, big hits). */
+  punch(v = 1) { this.ab = Math.min(1.5, (this.ab || 0) + v); }
+
+  /**
+   * Image-based lighting: bake a gradient sky (+ sun) into a PMREM environment so metals, glass and glossy floors
+   * pick up realistic reflections. No-op on Low.
+   */
+  setEnvironment(scene, { top = 0x6aa8ff, mid = 0xbfe0ff, horizon = 0xffffff, ground = 0x404040, sunDir = [0.5, 0.8, 0.4], sunColor = 0xffffff, sunPower = 6, intensity = 1 } = {}) {
+    if (!this.cfg.env) { scene.environment = null; return null; }
+    const env = new THREE.Scene();
+    const mat = new THREE.ShaderMaterial({ side: THREE.BackSide, depthWrite: false, uniforms: { a: { value: new THREE.Color(top) }, b: { value: new THREE.Color(mid) }, c: { value: new THREE.Color(horizon) }, g: { value: new THREE.Color(ground) }, sd: { value: new THREE.Vector3(...sunDir).normalize() }, sc: { value: new THREE.Color(sunColor).multiplyScalar(sunPower) } }, vertexShader: 'varying vec3 p; void main(){ p = normalize(position); gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.); }', fragmentShader: 'varying vec3 p; uniform vec3 a,b,c,g,sd,sc; void main(){ float y = p.y; vec3 col = y > 0. ? mix(c, mix(b, a, smoothstep(.25,.9,y)), smoothstep(0.,.3,y)) : mix(c, g, smoothstep(0.,-.35,y)); float s = max(dot(normalize(p), sd), 0.); col += sc * (pow(s, 220.) + pow(s, 14.) * 0.12); gl_FragColor = vec4(col, 1.); }' });
+    env.add(new THREE.Mesh(new THREE.SphereGeometry(50, 32, 16), mat));
+    this._pmrem ||= new THREE.PMREMGenerator(this.renderer);
+    const rt = this._pmrem.fromScene(env, 0.02);
+    if (scene.environment && scene.userData.envRT) scene.userData.envRT.dispose();
+    scene.environment = rt.texture; scene.userData.envRT = rt; scene.environmentIntensity = intensity;
+    mat.dispose(); env.children[0].geometry.dispose();
+    return rt.texture;
+  }
+
   render(dtRaw) {
     const { scene, camera } = this.view;
     if (!scene || !camera) return;
+    if (this.gradeU) { this.ab = Math.max(0, (this.ab || 0) - dtRaw * 2.2); this.gradeU.uAb.value = this.ab * 0.012; this.gradeU.uTime.value = (this.gradeU.uTime.value + dtRaw * 37) % 1000; }
     if (this.composer) this.composer.render(dtRaw); else this.renderer.render(scene, camera);
     this._track(dtRaw);
   }

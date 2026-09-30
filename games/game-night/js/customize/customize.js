@@ -80,6 +80,7 @@ export class Customize {
     this.info.append(h('div', { class: 'grow' }, h('b', null, it.name), h('div', { class: 'muted' }, it.desc)), h('span', { class: 'th ' + it.theme, style: { padding: '.2em .8em', borderRadius: '999px', fontWeight: 900, fontSize: '.7rem' } }, themeOf(it.theme).name.toUpperCase()));
     clear(this.title);
     this.title.append(h('h3', null, it.name), h('p', null, it.desc));
+    if (this.cat === 'frame') this.title.append(h('div', { style: { marginTop: '14px' }, html: badgeHTML(profile.avatar, it.id, 150) }));
     clear(this.actions);
     const act = ACTION[this.cat];
     if (act) this.actions.append(h('button', { class: 'btn y', id: 'cz-action', onclick: () => this.preview.action(this.cat) }, h('span', { class: 'ico', html: ICON[act[1]] }), act[0]));

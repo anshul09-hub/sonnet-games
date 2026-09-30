@@ -88,9 +88,16 @@ export class Physics {
       const rel = new THREE.Matrix4().multiplyMatrices(inv, c.matrixWorld);
       const pts = meshPoints(c, rel, o.maxPoints || 96);
       if (!pts || pts.length < 12) return;
-      let cd = RAPIER.ColliderDesc.convexHull(pts);
-      if (!cd) { const bb = new THREE.Box3().setFromBufferAttribute(c.geometry.attributes.position); const sz = bb.getSize(new THREE.Vector3()).multiply(c.getWorldScale(new THREE.Vector3())); const ce = bb.getCenter(new THREE.Vector3()).applyMatrix4(rel); cd = RAPIER.ColliderDesc.cuboid(Math.max(sz.x / 2, 0.02), Math.max(sz.y / 2, 0.02), Math.max(sz.z / 2, 0.02)).setTranslation(ce.x, ce.y, ce.z); }
-      this._collider(item, cd, o); n++;
+      let made = null;
+      // a convex hull needs real volume; degenerate (flat/thin) point sets are rejected by Rapier, so fall back to a box
+      try { const cd = RAPIER.ColliderDesc.convexHull(pts); if (cd) made = this._collider(item, cd, o); } catch { made = null; }
+      if (!made) {
+        const mn = [1e9, 1e9, 1e9], mx = [-1e9, -1e9, -1e9];
+        for (let i = 0; i < pts.length; i += 3) for (let k = 0; k < 3; k++) { mn[k] = Math.min(mn[k], pts[i + k]); mx[k] = Math.max(mx[k], pts[i + k]); }
+        const cd = RAPIER.ColliderDesc.cuboid(Math.max((mx[0] - mn[0]) / 2, 0.03), Math.max((mx[1] - mn[1]) / 2, 0.03), Math.max((mx[2] - mn[2]) / 2, 0.03)).setTranslation((mx[0] + mn[0]) / 2, (mx[1] + mn[1]) / 2, (mx[2] + mn[2]) / 2);
+        this._collider(item, cd, o);
+      }
+      n++;
     });
     if (!n) { const cd = RAPIER.ColliderDesc.cuboid(0.15, 0.15, 0.15); this._collider(item, cd, o); }
   }

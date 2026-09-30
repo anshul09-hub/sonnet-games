@@ -28,7 +28,7 @@ function codeInput(onChange) {
 function modeIcon(kind) { return ICON[kind]; }
 
 export class Hub {
-  constructor(app) { this.app = app; this.sheets = []; }
+  constructor(app, opts = {}) { this.app = app; this.sheets = []; this.opts = opts; }
 
   mount() {
     const { engine } = this.app;
@@ -58,6 +58,7 @@ export class Hub {
     audio.playMusic(itemOf('skin', profile.look.skin).theme, { game: 'hub', energy: 0.5 });
     this.hint();
     // deep link: ?room=ABCD
+    if (this.opts.lobby) { this.openLobby(this.opts.lobby); return; }
     const room = cleanCode(params.get('room'));
     if (room.length === 4) setTimeout(() => this.joinRoom(room), 300);
   }

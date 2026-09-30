@@ -63,7 +63,7 @@ export const store = {
 };
 
 // ---------- query params ----------
-export const params = new URLSearchParams(location.search);
+export const params = new URLSearchParams(typeof location !== 'undefined' ? location.search : '');
 export const isTouch = () => params.get('touch') === '1' || (params.get('touch') !== '0' && (matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0 && !matchMedia('(pointer: fine)').matches));
 
 // ---------- scaled game clock ----------

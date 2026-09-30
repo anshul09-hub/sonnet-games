@@ -77,7 +77,7 @@ export class Session extends Emitter {
     n.onMessage = (clientId, msg) => {
       const seat = this.seats.find((x) => x.clientId === clientId);
       if (!seat) return;
-      if (msg.t === 'g') this._deliver(msg.m, seat.i);
+      if (msg.t === 'g') this._deliver(msg.m, seat.play ?? seat.i);
       else if (msg.t === 'look') { seat.name = (msg.name || seat.name).slice(0, 14); seat.avatar = msg.avatar || seat.avatar; seat.look = msg.look || seat.look; this._pushRoom(); }
       else if (msg.t === 'leave') { this._hostLeave(clientId, 'left'); }
     };
@@ -102,7 +102,7 @@ export class Session extends Emitter {
     seat.name = (msg.name || 'Guest').slice(0, 14); seat.avatar = msg.avatar || 'cat'; seat.look = msg.look || seat.look; seat.online = true; seat.away = false;
     this.hostNet.sendTo(clientId, { t: 'welcome', seat: seat.i, room: this._room(), started: this.phase === 'playing' ? this.cfg : null, rejoined });
     this._pushRoom();
-    if (this.phase === 'playing') this.emit('seat', seat.i, true);
+    if (this.phase === 'playing') this.emit('seat', seat.play ?? seat.i, true);
   }
 
   _hostLeave(clientId, why) {
@@ -111,7 +111,7 @@ export class Session extends Emitter {
     if (this.phase === 'lobby') { Object.assign(seat, emptySeat(seat.i)); }
     else { seat.online = false; }
     this._pushRoom();
-    this.emit('seat', seat.i, false, why);
+    this.emit('seat', seat.play ?? seat.i, false, why);
   }
 
   _room() { return { game: this.game, code: this.code, phase: this.phase, seats: this.seats.map(pub) }; }

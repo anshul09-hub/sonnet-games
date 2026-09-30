@@ -1,0 +1,25 @@
+<!doctype html><html><head><meta charset="utf-8"><title>tokens</title>
+<style>html,body{margin:0;background:#222;overflow:hidden}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/","@dimforge/rapier3d-compat":"https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.14.0/rapier.es.js"}}</script>
+</head><body><script type="module">
+import * as THREE from 'three';
+import { buildToken } from '../js/customize/tokens.js';
+import { ITEMS } from '../js/customize/catalog.js';
+import { T } from '../js/core/toon.js';
+const q = new URLSearchParams(location.search);
+const theme = q.get('theme') || 'anime';
+const col = [0xff4d5e, 0x3ddc6a, 0xffd23f, 0x3aa0ff][+(q.get('c') || 0)];
+const ids = ITEMS.skin.filter(s => s.theme === theme).map(s => s.id);
+const r = new THREE.WebGLRenderer({ antialias: true }); r.setSize(innerWidth, innerHeight); r.shadowMap.enabled = true; r.toneMapping = THREE.ACESFilmicToneMapping;
+document.body.append(r.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x7fb8e8);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x88aa88, 1.6));
+const sun = new THREE.DirectionalLight(0xffffff, 3); sun.position.set(3, 6, 5); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.camera.left = -6; sun.shadow.camera.right = 6; sun.shadow.camera.top = 4; sun.shadow.camera.bottom = -4; scene.add(sun);
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(30, 12), new THREE.MeshStandardMaterial({ color: 0xe8e4d8 })); floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+const toks = ids.map((id, i) => { const t = buildToken(id, col); t.group.position.set((i % 4 - 1.5) * 1.6, 0, (Math.floor(i / 4) - 0.5) * 2.0); t.group.rotation.y = -0.3; scene.add(t.group); return t; });
+const cam = new THREE.PerspectiveCamera(32, innerWidth / innerHeight, 0.1, 100);
+cam.position.set(0, 4.2, 8.2); cam.lookAt(0, 0.5, 0);
+let t0 = 0;
+window.render = (t) => { toks.forEach(k => k.tick(t, 0.016)); r.render(scene, cam); };
+window.ready = true;
+</script></body></html>

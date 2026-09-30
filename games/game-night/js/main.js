@@ -27,7 +27,7 @@ const app = {
       if (this.current) { this.current.unmount(); this.current = null; }
       screenFx.clear();
       let screen;
-      if (name === 'hub') { const { Hub } = await import('./hub/hub.js'); screen = new Hub(this); }
+      if (name === 'hub') { const { Hub } = await import('./hub/hub.js'); screen = new Hub(this, opts); }
       else if (name === 'customize') { const { Customize } = await import('./customize/customize.js'); screen = new Customize(this, opts); }
       else throw new Error('unknown screen ' + name);
       this.name = name;
@@ -58,7 +58,7 @@ const app = {
   /** Leave a match: hosts of online rooms return to the lobby via the hub. */
   exitToHub(session) { if (session && session.mode === 'online') session.close(); return this.go('hub'); },
 };
-window.__gn = { app, engine, profile, audio };
+window.__gn = { app, engine, profile, audio, renderNow: () => engine.render(0.016) };
 
 const NORENDER = params.get('norender') === '1'; // logic-only test runs
 let last = performance.now();
