@@ -14,11 +14,11 @@ export function blockMaterial(kind) {
   if (_mats[kind]) return _mats[kind];
   const T = textures();
   const opts = {
-    wood: { map: T.wood, roughness: 0.82, metalness: 0 },
-    stone: { map: T.stone, roughness: 0.93, metalness: 0 },
+    wood: { map: T.wood, bumpMap: T.wood, bumpScale: 1.2, roughness: 0.8, metalness: 0 },
+    stone: { map: T.stone, bumpMap: T.stone, bumpScale: 2.2, roughness: 0.9, metalness: 0 },
     glass: { map: T.glass, roughness: 0.05, metalness: 0.05, transparent: true, opacity: 0.42, envMapIntensity: 2.4, depthWrite: false },
-    sstone: { map: T.stone, roughness: 0.93, metalness: 0, color: 0xc9c2b8 },   // static (indestructible) stone
-    swood: { map: T.wood, roughness: 0.85, metalness: 0, color: 0xa07f5a },     // static timber
+    sstone: { map: T.stone, bumpMap: T.stone, bumpScale: 2.2, roughness: 0.93, metalness: 0, color: 0xc9c2b8 },   // static (indestructible) stone
+    swood: { map: T.wood, bumpMap: T.wood, bumpScale: 1.2, roughness: 0.85, metalness: 0, color: 0xa07f5a },     // static timber
   }[kind];
   const m = new THREE.MeshStandardMaterial(opts);
   const glass = kind === 'glass';
@@ -27,7 +27,7 @@ export function blockMaterial(kind) {
     sh.uniforms.crackMap = { value: T.crack };
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', '#include <common>\nattribute float aDamage;\nattribute float aSeed;\nvarying float vDamage;')
-      .replace('#include <uv_vertex>', '#include <uv_vertex>\nvDamage = aDamage;\n#ifdef USE_MAP\nvMapUv += vec2(aSeed, fract(aSeed * 7.31));\n#endif');
+      .replace('#include <uv_vertex>', '#include <uv_vertex>\nvDamage = aDamage;\n#ifdef USE_MAP\nvMapUv += vec2(aSeed, fract(aSeed * 7.31));\n#endif\n#ifdef USE_BUMPMAP\nvBumpMapUv += vec2(aSeed, fract(aSeed * 7.31));\n#endif');
     sh.fragmentShader = sh.fragmentShader
       .replace('#include <common>', '#include <common>\nuniform sampler2D crackMap;\nvarying float vDamage;')
       .replace('#include <map_fragment>', `#include <map_fragment>

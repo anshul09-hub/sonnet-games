@@ -30,9 +30,9 @@ export const LAUNCH = { minSpeed: 8, maxSpeed: 42, minAngle: 6, maxAngle: 82 };
 
 // Graphics presets.
 export const QUALITY = {
-  low:    { pixelRatio: 1,   shadows: true,  shadowSize: 1024, bloom: false, msaa: 0, particles: 0.35, debris: 36,  grass: 0.15, trees: 0.5 },
-  medium: { pixelRatio: 1.5, shadows: true,  shadowSize: 1024, bloom: true,  msaa: 0, particles: 0.7,  debris: 80,  grass: 0.5,  trees: 0.8 },
-  high:   { pixelRatio: 2,   shadows: true,  shadowSize: 2048, bloom: true,  msaa: 4, particles: 1,    debris: 150, grass: 1,    trees: 1 },
+  low:    { pixelRatio: 1,   shadows: true,  shadowSize: 1024, bloom: false, msaa: 0, ao: false, rays: 0,  flare: false, grade: false, particles: 0.35, debris: 36,  grass: 0.08, trees: 0.22 },
+  medium: { pixelRatio: 1.5, shadows: true,  shadowSize: 2048, bloom: true,  msaa: 0, ao: false, rays: 20, flare: true,  grade: true,  particles: 0.7,  debris: 80,  grass: 0.4,  trees: 0.55 },
+  high:   { pixelRatio: 2,   shadows: true,  shadowSize: 4096, bloom: true,  msaa: 4, ao: true,  rays: 40, flare: true,  grade: true,  particles: 1,    debris: 150, grass: 1,    trees: 1 },
 };
 
 export function starsForShots(shots) {

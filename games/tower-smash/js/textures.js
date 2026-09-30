@@ -205,3 +205,122 @@ export function applyBoxUV(geo, size, texScale) {
   uv.needsUpdate = true;
   return geo;
 }
+
+// ======================================================================
+// Environment textures (all painted on canvases)
+// ======================================================================
+function blob(g, S, x, y, r, color) {
+  wrapped(S, S, x, y, r, (px, py) => {
+    const gr = g.createRadialGradient(px, py, 0, px, py, r);
+    gr.addColorStop(0, color); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = gr; g.fillRect(px - r, py - r, r * 2, r * 2);
+  });
+}
+
+export function grassDetailTexture() {
+  const S = 512, c = canvas(S, S), g = c.getContext('2d'), R = rng(31);
+  g.fillStyle = '#c9d8b8'; g.fillRect(0, 0, S, S);
+  for (let i = 0; i < 90; i++) blob(g, S, R() * S, R() * S, 30 + R() * 90, R() < 0.5 ? 'rgba(255,255,235,.22)' : 'rgba(60,110,40,.22)');
+  for (let i = 0; i < 9000; i++) {
+    const x = R() * S, y = R() * S, l = 3 + R() * 7, a = -Math.PI / 2 + (R() - 0.5) * 1.1;
+    g.strokeStyle = R() < 0.5 ? `rgba(70,120,40,${0.12 + R() * 0.2})` : `rgba(255,255,225,${0.10 + R() * 0.16})`;
+    g.lineWidth = 0.8 + R() * 0.8;
+    wrapped(S, S, x, y, 10, (px, py) => { g.beginPath(); g.moveTo(px, py); g.lineTo(px + Math.cos(a) * l, py + Math.sin(a) * l); g.stroke(); });
+  }
+  const t = toTexture(c); t.repeat.set(1, 1);
+  return t;
+}
+
+export function barkTexture(light = false) {
+  const S = 256, c = canvas(S, S), g = c.getContext('2d'), R = rng(light ? 71 : 41);
+  g.fillStyle = light ? '#e8e4da' : '#6a4b31'; g.fillRect(0, 0, S, S);
+  if (light) {                                    // birch: dark horizontal marks
+    for (let i = 0; i < 70; i++) {
+      const x = R() * S, y = R() * S, w = 10 + R() * 40;
+      g.fillStyle = `rgba(30,28,26,${0.35 + R() * 0.5})`;
+      wrapped(S, S, x, y, w, (px, py) => g.fillRect(px, py, w, 2 + R() * 3));
+    }
+  } else {
+    for (let i = 0; i < 260; i++) {                // fissures
+      const x = R() * S, y = R() * S, l = 30 + R() * 90;
+      g.strokeStyle = `rgba(28,18,10,${0.25 + R() * 0.45})`; g.lineWidth = 1 + R() * 2.4;
+      wrapped(S, S, x, y, l, (px, py) => { g.beginPath(); g.moveTo(px, py); for (let k = 1; k <= 4; k++) g.lineTo(px + (R() - 0.5) * 6, py + k * l / 4); g.stroke(); });
+    }
+    for (let i = 0; i < 60; i++) blob(g, S, R() * S, R() * S, 20 + R() * 40, R() < 0.5 ? 'rgba(200,170,130,.16)' : 'rgba(20,12,6,.2)');
+  }
+  return toTexture(c);
+}
+
+export function leafTexture() {
+  const S = 256, c = canvas(S, S), g = c.getContext('2d'), R = rng(52);
+  g.fillStyle = '#9fbd7a'; g.fillRect(0, 0, S, S);
+  for (let i = 0; i < 700; i++) {
+    const x = R() * S, y = R() * S, w = 5 + R() * 9, h = 3 + R() * 5, a = R() * 6.28, v = R();
+    g.fillStyle = v < 0.3 ? 'rgba(45,90,30,.55)' : v < 0.7 ? 'rgba(255,255,220,.30)' : 'rgba(120,170,70,.45)';
+    wrapped(S, S, x, y, w, (px, py) => { g.save(); g.translate(px, py); g.rotate(a); g.beginPath(); g.ellipse(0, 0, w, h, 0, 0, 6.3); g.fill(); g.restore(); });
+  }
+  return toTexture(c);
+}
+
+// RGBA card with a clump of grass blades
+export function bladeTexture(tone = 0) {
+  const W = 256, H = 256, c = canvas(W, H), g = c.getContext('2d'), R = rng(90 + tone);
+  for (let i = 0; i < 26; i++) {
+    const x = 20 + R() * (W - 40), h = 90 + R() * 150, lean = (R() - 0.5) * 70, w = 4 + R() * 6;
+    const gr = g.createLinearGradient(0, H, 0, H - h);
+    gr.addColorStop(0, tone ? '#3b5e1e' : '#2c5a1c'); gr.addColorStop(0.5, tone ? '#7fa83a' : '#5c9a2a'); gr.addColorStop(1, tone ? '#d6dd6a' : '#a5d24f');
+    g.fillStyle = gr;
+    g.beginPath(); g.moveTo(x - w, H); g.quadraticCurveTo(x - w * 0.4 + lean * 0.3, H - h * 0.55, x + lean, H - h);
+    g.quadraticCurveTo(x + w * 0.4 + lean * 0.3, H - h * 0.55, x + w, H); g.closePath(); g.fill();
+  }
+  const t = toTexture(c, { repeat: false }); return t;
+}
+
+export function flowerTexture(head, center = '#ffd23d') {
+  const W = 256, H = 256, c = canvas(W, H), g = c.getContext('2d'), R = rng(120 + head.length * 7);
+  for (let i = 0; i < 7; i++) {
+    const x = 30 + R() * (W - 60), h = 80 + R() * 110, lean = (R() - 0.5) * 30;
+    g.strokeStyle = '#3d7a24'; g.lineWidth = 3; g.beginPath(); g.moveTo(x, H); g.quadraticCurveTo(x + lean * 0.2, H - h * 0.5, x + lean, H - h); g.stroke();
+    g.fillStyle = '#4d9430'; g.beginPath(); g.ellipse(x + lean * 0.3, H - h * 0.35, 14, 4, -0.5, 0, 6.3); g.fill();
+    const hx = x + lean, hy = H - h, pr = 9 + R() * 4;
+    g.fillStyle = head;
+    for (let p = 0; p < 6; p++) { const a = p * Math.PI / 3; g.beginPath(); g.ellipse(hx + Math.cos(a) * pr * 0.8, hy + Math.sin(a) * pr * 0.8, pr * 0.75, pr * 0.42, a, 0, 6.3); g.fill(); }
+    g.fillStyle = center; g.beginPath(); g.arc(hx, hy, pr * 0.42, 0, 6.3); g.fill();
+  }
+  return toTexture(c, { repeat: false });
+}
+
+export function rockTexture() {
+  const S = 256, c = canvas(S, S), g = c.getContext('2d'), R = rng(63);
+  g.fillStyle = '#9a9690'; g.fillRect(0, 0, S, S);
+  for (let i = 0; i < 40; i++) blob(g, S, R() * S, R() * S, 20 + R() * 60, R() < 0.5 ? 'rgba(235,230,220,.28)' : 'rgba(50,48,46,.30)');
+  for (let i = 0; i < 26; i++) {                     // strata
+    const y = R() * S; g.strokeStyle = `rgba(40,38,36,${0.10 + R() * 0.2})`; g.lineWidth = 1 + R() * 3;
+    g.beginPath(); g.moveTo(0, y); for (let x = 0; x <= S; x += 16) g.lineTo(x, y + Math.sin(x * 0.05 + i) * 4); g.stroke();
+  }
+  for (let i = 0; i < 40; i++) blob(g, S, R() * S, R() * S, 6 + R() * 14, 'rgba(120,150,60,.30)');   // lichen
+  for (let i = 0; i < 1500; i++) { g.fillStyle = `rgba(0,0,0,${R() * 0.18})`; g.fillRect(R() * S, R() * S, 1.5, 1.5); }
+  return toTexture(c);
+}
+
+export function plasterTexture() {
+  const S = 256, c = canvas(S, S), g = c.getContext('2d'), R = rng(81);
+  g.fillStyle = '#efe3c8'; g.fillRect(0, 0, S, S);
+  for (let i = 0; i < 50; i++) blob(g, S, R() * S, R() * S, 20 + R() * 50, R() < 0.5 ? 'rgba(255,255,255,.25)' : 'rgba(150,120,80,.18)');
+  for (let i = 0; i < 1200; i++) { g.fillStyle = `rgba(90,70,40,${R() * 0.15})`; g.fillRect(R() * S, R() * S, 2, 2); }
+  g.fillStyle = 'rgba(90,60,30,.85)';                 // timber framing
+  for (const x of [0, 126, 250]) g.fillRect(x, 0, 6, S);
+  for (const y of [0, 126, 250]) g.fillRect(0, y, S, 6);
+  return toTexture(c);
+}
+
+export function roofTexture() {
+  const S = 256, c = canvas(S, S), g = c.getContext('2d'), R = rng(91);
+  for (let row = 0; row < 8; row++) for (let col = -1; col < 9; col++) {
+    const x = col * 32 + (row % 2) * 16, y = row * 32, v = R() * 26;
+    g.fillStyle = `rgb(${176 + v | 0},${72 + v * 0.6 | 0},${46 + v * 0.4 | 0})`;
+    g.beginPath(); g.roundRect ? g.roundRect(x, y, 30, 36, [0, 0, 14, 14]) : g.rect(x, y, 30, 36); g.fill();
+    g.strokeStyle = 'rgba(60,20,10,.55)'; g.lineWidth = 2; g.stroke();
+  }
+  return toTexture(c);
+}
