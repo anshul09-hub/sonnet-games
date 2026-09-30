@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#1a1226">
+<title>Drift King</title>
+<link rel="stylesheet" href="style.css">
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
+    "@dimforge/rapier3d-compat": "https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.14.0/rapier.es.js"
+  }
+}
+</script>
+</head>
+<body>
+<canvas id="gl" tabindex="-1"></canvas>
+<canvas id="speedlines"></canvas>
+<div id="vignette"></div>
+<div id="flash"></div>
+
+<!-- ============================ HUD ============================ -->
+<div id="hud" class="hidden">
+  <div id="posBox" class="panel">
+    <div class="label">POSITION</div>
+    <div class="big"><span id="posNum">4</span><sup id="posSuf">TH</sup><span class="of">/<span id="posTotal">4</span></span></div>
+  </div>
+
+  <div id="lapBox" class="panel">
+    <div class="lapRow"><span class="label">LAP</span><b id="lapNum">1</b><span class="of">/<span id="lapTotal">3</span></span></div>
+    <div class="times">
+      <div><span class="label">TIME</span><span id="tCur">0:00.000</span></div>
+      <div><span class="label">LAST</span><span id="tLast">--:--.---</span></div>
+      <div class="best"><span class="label">BEST</span><span id="tBest">--:--.---</span></div>
+    </div>
+  </div>
+
+  <div id="driftBox" class="hidden"><span class="label">DRIFT</span><b id="driftTime">0.0</b><span id="driftBonus"></span></div>
+  <div id="toast"></div>
+  <div id="countdown"></div>
+  <div id="wrong" class="hidden">WRONG WAY</div>
+
+  <div id="minimapWrap"><canvas id="minimap" width="220" height="220"></canvas></div>
+
+  <div id="speedo">
+    <canvas id="gauge" width="320" height="320"></canvas>
+    <div id="speedCenter">
+      <div id="speedNum">0</div>
+      <div class="unit">KM/H</div>
+      <div id="gear">N</div>
+    </div>
+    <div id="boostWrap">
+      <div class="label">BOOST <kbd>B</kbd></div>
+      <div id="boostBar"><i id="boostFill"></i></div>
+    </div>
+  </div>
+
+  <div id="hint"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> drive &nbsp; <kbd>Shift</kbd>/<kbd>Space</kbd> handbrake drift &nbsp; <kbd>B</kbd> boost &nbsp; <kbd>R</kbd> reset &nbsp; <kbd>Esc</kbd> pause &nbsp; <kbd>M</kbd> mute</div>
+  <div id="muteInd" class="hidden">MUTED &middot; press M</div>
+</div>
+
+<!-- ============================ LOADING ============================ -->
+<div id="loading" class="screen">
+  <div class="logo small">DRIFT<span>KING</span></div>
+  <div id="loadMsg">Building the world&hellip;</div>
+  <div id="loadBar"><i></i></div>
+  <div id="loadErr" class="hidden"></div>
+</div>
+
+<!-- ============================ TITLE ============================ -->
+<div id="title" class="screen hidden">
+  <div class="titleWrap">
+    <div class="logo">DRIFT<span>KING</span></div>
+    <div class="tag">Golden-hour arcade drift racing &middot; 3 laps &middot; 3 rivals</div>
+    <div class="menu">
+      <button id="btnStart" class="btn primary">START RACE <kbd>Enter</kbd></button>
+      <div class="row"><span class="label">GRAPHICS</span>
+        <div class="seg" id="segQuality"><button data-q="low">LOW</button><button data-q="medium">MEDIUM</button><button data-q="high">HIGH</button></div>
+      </div>
+      <div class="row"><span class="label">SOUND</span>
+        <div class="seg" id="segSound"><button data-s="on">ON</button><button data-s="off">OFF</button></div>
+      </div>
+    </div>
+    <div class="best" id="titleBest">Best lap <b id="titleBestVal">--:--.---</b></div>
+  </div>
+  <div class="controls">
+    <div><kbd>W</kbd><kbd>&uarr;</kbd> throttle</div>
+    <div><kbd>S</kbd><kbd>&darr;</kbd> brake / reverse</div>
+    <div><kbd>A</kbd><kbd>D</kbd><kbd>&larr;</kbd><kbd>&rarr;</kbd> steer</div>
+    <div><kbd>Shift</kbd><kbd>Space</kbd> handbrake &mdash; drift!</div>
+    <div><kbd>B</kbd> boost (fill it by drifting)</div>
+    <div><kbd>R</kbd> reset car &middot; <kbd>Esc</kbd> pause &middot; <kbd>M</kbd> mute</div>
+  </div>
+</div>
+
+<!-- ============================ PAUSE ============================ -->
+<div id="pause" class="screen hidden">
+  <div class="card">
+    <h2>PAUSED</h2>
+    <button id="btnResume" class="btn primary">RESUME <kbd>Esc</kbd></button>
+    <button id="btnRestart" class="btn">RESTART RACE</button>
+    <button id="btnQuit" class="btn">QUIT TO TITLE</button>
+    <div class="row"><span class="label">GRAPHICS</span>
+      <div class="seg" id="segQuality2"><button data-q="low">LOW</button><button data-q="medium">MEDIUM</button><button data-q="high">HIGH</button></div>
+    </div>
+    <div class="row"><span class="label">SOUND</span>
+      <div class="seg" id="segSound2"><button data-s="on">ON</button><button data-s="off">OFF</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ RESULTS ============================ -->
+<div id="results" class="screen hidden">
+  <div class="card wide">
+    <div class="label">RACE COMPLETE</div>
+    <div id="resPlace" class="resPlace">1ST</div>
+    <div id="resNote" class="resNote"></div>
+    <table id="resTable"><thead><tr><th>#</th><th>DRIVER</th><th>TIME</th><th>BEST LAP</th></tr></thead><tbody></tbody></table>
+    <div class="btnRow">
+      <button id="btnAgain" class="btn primary">RACE AGAIN <kbd>Enter</kbd></button>
+      <button id="btnTitle" class="btn">TITLE</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

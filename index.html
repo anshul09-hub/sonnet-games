@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sonnet Games</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { min-height: 100vh; font-family: "Trebuchet MS", "Segoe UI", system-ui, sans-serif; color: #fff3e0;
+    background: radial-gradient(ellipse at 50% -10%, #5b3a6b 0%, #1a1226 55%, #100a19 100%); }
+  header { padding: 8vh 6vw 3vh; text-align: center; }
+  h1 { font-size: clamp(2rem, 6vw, 4rem); font-style: italic; font-weight: 900; letter-spacing: -0.01em;
+    background: linear-gradient(180deg, #ffe08a, #ff8a2f 70%, #ff3b30); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  header p { margin-top: 0.6rem; color: #c9b7a4; font-size: clamp(0.95rem, 2vw, 1.15rem); }
+  main { max-width: 1100px; margin: 0 auto; padding: 2vh 5vw 8vh; }
+  .grid { display: grid; gap: 1.6rem; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+  .card { display: flex; flex-direction: column; text-decoration: none; color: inherit; border-radius: 18px; overflow: hidden;
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,210,140,0.25); box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease; }
+  .card:hover, .card:focus-visible { transform: translateY(-5px); border-color: rgba(255,210,140,0.7); box-shadow: 0 18px 50px rgba(255,120,40,0.25); outline: none; }
+  .card svg { display: block; width: 100%; height: auto; aspect-ratio: 16 / 10; }
+  .card .body { padding: 1.1rem 1.3rem 1.3rem; }
+  .card h2 { font-size: 1.5rem; font-style: italic; font-weight: 900; }
+  .card .tags { margin-top: 0.25rem; color: #ffc44d; font-size: 0.8rem; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 700; }
+  .card p { margin-top: 0.6rem; color: #d8c8b8; line-height: 1.5; font-size: 0.95rem; }
+  .card .play { display: inline-block; margin-top: 0.9rem; padding: 0.5rem 1.2rem; border-radius: 99px; font-weight: 800; font-style: italic;
+    background: linear-gradient(90deg, #ff5a2f, #ff9a2f); color: #fff; }
+  footer { text-align: center; padding: 0 0 5vh; color: #8f7f92; font-size: 0.85rem; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Sonnet Games</h1>
+  <p>Small browser games built by Claude Sonnet 5.5 &mdash; one prompt each. Plain HTML, CSS and JavaScript.</p>
+</header>
+<main>
+  <div class="grid" id="games">
+
+    <!-- ===== Drift King ===== -->
+    <a class="card" href="games/drift-king/" aria-label="Play Drift King">
+      <svg viewBox="0 0 320 200" role="img" aria-label="A red low-poly car drifting on a sunset road">
+        <defs>
+          <linearGradient id="dk-sky" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#3a4f9a"/><stop offset="0.45" stop-color="#c187b0"/><stop offset="1" stop-color="#ffbf8a"/>
+          </linearGradient>
+          <linearGradient id="dk-road" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a4653"/><stop offset="1" stop-color="#25232e"/></linearGradient>
+          <radialGradient id="dk-sun" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#fff2c8"/><stop offset="0.35" stop-color="#ffd08a" stop-opacity="0.85"/><stop offset="1" stop-color="#ffb46a" stop-opacity="0"/></radialGradient>
+        </defs>
+        <rect width="320" height="200" fill="url(#dk-sky)"/>
+        <circle cx="228" cy="92" r="60" fill="url(#dk-sun)"/>
+        <polygon points="0,110 60,70 110,104 170,64 240,108 290,80 320,98 320,130 0,130" fill="#8a5a86" opacity="0.75"/>
+        <polygon points="0,124 70,92 140,120 210,96 320,126 320,140 0,140" fill="#6b4a63"/>
+        <polygon points="0,134 40,120 90,136 150,122 220,138 280,124 320,136 320,150 0,150" fill="#4b6a3a"/>
+        <polygon points="128,132 192,132 320,200 0,200" fill="url(#dk-road)"/>
+        <polygon points="128,132 134,132 60,200 0,200" fill="#e8e2d8"/><polygon points="192,132 186,132 262,200 320,200" fill="#d3262a"/>
+        <g fill="#ffd45a"><polygon points="158,136 162,136 163,146 157,146"/><polygon points="156,152 164,152 166,170 154,170"/></g>
+        <g transform="translate(150 152) rotate(-14)">
+          <ellipse cx="18" cy="42" rx="52" ry="7" fill="#000" opacity="0.35"/>
+          <polygon points="-34,20 34,20 40,36 -40,36" fill="#c9231c"/>
+          <polygon points="-28,4 26,4 36,20 -34,20" fill="#ff3b30"/>
+          <polygon points="-18,-8 16,-8 24,4 -24,4" fill="#141a26"/>
+          <polygon points="-40,10 40,10 40,14 -40,14" fill="#fff" opacity="0.0"/>
+          <rect x="-44" y="-2" width="28" height="5" fill="#fff" transform="rotate(8)"/>
+          <circle cx="-24" cy="38" r="9" fill="#18181b"/><circle cx="-24" cy="38" r="4" fill="#c9ccd4"/>
+          <circle cx="26" cy="38" r="9" fill="#18181b"/><circle cx="26" cy="38" r="4" fill="#c9ccd4"/>
+        </g>
+        <g fill="#e6e2da" opacity="0.7"><circle cx="112" cy="188" r="12"/><circle cx="98" cy="192" r="9"/><circle cx="126" cy="192" r="8"/><circle cx="84" cy="194" r="6"/></g>
+      </svg>
+      <div class="body">
+        <h2>Drift King</h2>
+        <div class="tags">3D racing &middot; Three.js &middot; Rapier physics</div>
+        <p>Low-poly golden-hour arcade drift racer. Raycast-suspension physics, three rival AIs, a big jump over a gap, drift-fed boost and a synthesised soundtrack.</p>
+        <span class="play">Play &rarr;</span>
+      </div>
+    </a>
+
+  </div>
+</main>
+<footer>Add a game: drop it in <code>games/&lt;name&gt;/</code> and add a card above.</footer>
+</body>
+</html>
