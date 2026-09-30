@@ -74,7 +74,7 @@ function sharedGeos() {
   shared.darkMat = new THREE.MeshStandardMaterial({ color: 0x15161a, roughness: 0.7, metalness: 0.2, flatShading: true });
   shared.headMat = new THREE.MeshStandardMaterial({ color: 0xfff2cc, emissive: 0xffe6a8, emissiveIntensity: 3.2, roughness: 0.3 });
   shared.flameGeo = new THREE.ConeGeometry(0.15, 1.1, 7).rotateX(-Math.PI / 2).translate(0, 0, -0.55);
-  shared.flameMat = new THREE.MeshBasicMaterial({ color: 0xffb050, transparent: true, opacity: 0.92, blending: THREE.AdditiveBlending, depthWrite: false });
+  shared.flameMat = new THREE.MeshBasicMaterial({ color: 0xff8a1e, transparent: true, opacity: 1, blending: THREE.AdditiveBlending, depthWrite: false });
   shared.ready = true;
   return shared;
 }

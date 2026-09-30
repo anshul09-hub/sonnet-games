@@ -31,8 +31,6 @@ const DRIVERS = [
   { name: 'VEX', color: '#a56bff', hex: 0xa56bff, accent: 0x6dffb0, number: 11, skill: 0.965, aggression: 0.85, seed: 23 },
   { name: 'BLAZE', color: '#ffd21f', hex: 0xffd21f, accent: 0x222222, number: 5, skill: 0.945, aggression: 0.65, seed: 37 },
 ];
-// grid slot for each driver index: [row, side]
-const GRID = [[1, 1], [0, -1], [1, -1], [0, 1]].map(([row, side]) => ({ row, side }));
 // (YOU starts on the second row, right-hand side)
 const GRID_FOR = [
   { row: 1, side: 1 }, // YOU
@@ -642,7 +640,6 @@ export class Game {
     this.props.syncVisuals();
     // camera
     const st = this.state;
-    const orbitMode = st === 'title' || st === 'finished' && this.camRig.mode === 'orbit';
     this.camRig.update(dt, car, alpha, { orbitSpeed: st === 'title' ? 0.2 : 0.3, blendRate: st === 'countdown' ? 1.6 : 2.4 });
     this.camera.updateMatrixWorld();
     // world (sky/shadows follow)
