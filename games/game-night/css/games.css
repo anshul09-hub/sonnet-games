@@ -1,0 +1,8 @@
+/* In-game HUDs and touch controls (Ludo, Snake, Brawl). */
+.vstick-zone { position: absolute; touch-action: none; z-index: 5; }
+.vstick-base { position: absolute; border-radius: 50%; border: 4px solid #fff; background: rgba(255,255,255,.08); pointer-events: none; display: grid; place-items: center; }
+.vstick-base span { position: absolute; top: -26px; font-size: .75rem; font-weight: 900; letter-spacing: .1em; opacity: .8; }
+.vstick-knob { width: 44%; height: 44%; border-radius: 50%; opacity: .75; box-shadow: 0 0 14px rgba(255,255,255,.4); }
+.tbtn { position: absolute; z-index: 6; border-radius: 50%; border: 4px solid #fff; display: grid; place-items: center; font-weight: 900; color: #2a1470; text-shadow: 0 1px 0 rgba(255,255,255,.6); touch-action: none; user-select: none; box-shadow: 0 6px 0 rgba(0,0,0,.35), 0 0 18px rgba(255,255,255,.25); }
+.tbtn.on { transform: translateY(4px) scale(.96); box-shadow: 0 2px 0 rgba(0,0,0,.35); }
+.hub-nav { display: none; align-items: center; gap: 14px; }
