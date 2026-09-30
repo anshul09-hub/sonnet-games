@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Blockworld</title>
+<meta name="description" content="A Minecraft-style voxel sandbox in the browser: endless biomes, caves, TNT chain reactions, sheep and a day/night cycle.">
+<link rel="stylesheet" href="style.css">
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
+    "rapier": "https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.14.0/rapier.es.js"
+  }
+}
+</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="hud" class="hidden">
+  <div id="crosshair"><i></i><i></i></div>
+  <div id="hotbar"></div>
+  <div id="blockname"></div>
+  <div id="debug" class="hidden"></div>
+  <div id="loadingtip" class="hidden">Loading terrain…</div>
+</div>
+<div id="toast"></div>
+<div id="underwater"></div>
+<div id="flash"></div>
+<div id="vignette"></div>
+
+<div id="title" class="screen">
+  <div class="panel">
+    <h1 class="logo"><span>BLOCK</span><span>WORLD</span></h1>
+    <p class="tag">An endless voxel sandbox — right in your browser.</p>
+    <div class="row">
+      <label for="seed">World seed</label>
+      <input id="seed" type="text" maxlength="40" placeholder="leave empty for a random world" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="row two">
+      <label for="gfx">Graphics</label>
+      <select id="gfx"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option></select>
+    </div>
+    <button id="play" class="btn big" disabled>Loading…</button>
+    <div class="row small"><span id="savehint"></span><button id="delsave" class="link hidden">delete saved world</button></div>
+    <div id="bootbar"><div></div></div>
+    <p class="keys"><b>WASD</b> move · <b>Space</b> jump · <b>Shift</b> sprint · <b>Mouse</b> look · <b>Left click</b> break (or light TNT) · <b>Right click</b> place · <b>1-9 / wheel</b> hotbar · <b>E</b> blocks · <b>F</b> fly · <b>M</b> mute · <b>Esc</b> pause</p>
+  </div>
+  <div id="bootmsg"></div>
+</div>
+
+<div id="pause" class="screen hidden">
+  <div class="panel">
+    <h2>Paused</h2>
+    <div class="row two"><label for="vol">Volume</label><input id="vol" type="range" min="0" max="100" value="80"></div>
+    <div class="row two"><label for="mus">Music</label><input id="mus" type="range" min="0" max="100" value="50"></div>
+    <div class="row two"><label for="gfx2">Graphics</label>
+      <select id="gfx2"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></div>
+    <button id="resume" class="btn big">Resume</button>
+    <button id="quit" class="btn">Save &amp; quit to title</button>
+    <p class="keys"><b>M</b> mute · <b>F</b> fly · <b>T</b> skip time · <b>F3</b> debug · <b>middle-click</b> pick block</p>
+    <p id="seedinfo" class="small"></p>
+  </div>
+</div>
+
+<div id="inventory" class="screen hidden">
+  <div class="panel wide">
+    <h2>Blocks</h2>
+    <p class="small">Click a block to put it in the selected hotbar slot. Press E to close.</p>
+    <div id="invgrid"></div>
+  </div>
+</div>
+
+<script>
+  // friendly message if the ES modules (Three.js) cannot load
+  setTimeout(function () {
+    if (!window.__bw) {
+      var m = document.getElementById('bootmsg');
+      if (m) m.textContent = 'Still loading… if this stays here, check your connection (the game loads Three.js from a CDN) and that WebGL is enabled.';
+    }
+  }, 9000);
+</script>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sonnet Games</title>
+<meta name="description" content="A small arcade of browser games built by Claude Sonnet 5.5, one prompt each.">
+<style>
+  :root { --bg: #0d1020; --panel: #171b31; --line: #2c3358; --ink: #e9ecf8; --dim: #97a0c4; --accent: #8ee06a; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--ink);
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, "Courier New", monospace; }
+  body { background: radial-gradient(1200px 600px at 50% -10%, #1d2550 0%, transparent 60%), var(--bg); }
+  header { max-width: 1100px; margin: 0 auto; padding: 56px 20px 8px; }
+  h1 { margin: 0; font-size: clamp(30px, 6vw, 52px); letter-spacing: 2px; }
+  h1 span { color: var(--accent); }
+  header p { margin: 10px 0 0; color: var(--dim); max-width: 60ch; line-height: 1.6; }
+  main { max-width: 1100px; margin: 0 auto; padding: 28px 20px 60px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 22px; }
+  .card { display: flex; flex-direction: column; text-decoration: none; color: inherit; background: var(--panel); border: 2px solid var(--line);
+    border-radius: 6px; overflow: hidden; transition: transform .15s, border-color .15s, box-shadow .15s; }
+  .card:hover, .card:focus-visible { transform: translateY(-4px); border-color: var(--accent); box-shadow: 0 12px 34px rgba(0, 0, 0, .45); outline: none; }
+  .art { position: relative; height: 170px; overflow: hidden; }
+  .body { padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+  .body h2 { margin: 0; font-size: 21px; }
+  .body p { margin: 0; color: var(--dim); font-size: 13.5px; line-height: 1.55; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+  .tags span { font-size: 11px; padding: 2px 8px; border: 1px solid var(--line); border-radius: 99px; color: var(--dim); }
+  .play { margin-top: auto; padding-top: 10px; font-weight: 700; color: var(--accent); letter-spacing: 1px; }
+  footer { max-width: 1100px; margin: 0 auto; padding: 0 20px 40px; color: var(--dim); font-size: 12px; }
+
+  /* Blockworld cover art: pure CSS pixel scene */
+  .bw { background: linear-gradient(#5a9df0 0%, #a9d0fb 62%, #cfe6ff 62%); image-rendering: pixelated; }
+  .bw .sun { position: absolute; left: 66%; top: 14%; width: 30px; height: 30px; background: #fff3b8; box-shadow: 0 0 0 5px #ffd96e, 0 0 0 10px rgba(255, 184, 74, .5); }
+  .bw .cloud { position: absolute; height: 12px; background: #fff; box-shadow: 12px -10px 0 #fff, 34px -10px 0 #fff, 46px 0 0 #fff; opacity: .95; }
+  .bw .hills { position: absolute; left: 0; right: 0; bottom: 42px; height: 46px;
+    background: conic-gradient(from 225deg at 30% 100%, transparent 0 0), linear-gradient(#e9f2ff, #e9f2ff); clip-path: polygon(0 100%, 0 70%, 8% 70%, 8% 50%, 16% 50%, 16% 28%, 26% 28%, 26% 46%, 34% 46%, 34% 66%, 100% 66%, 100% 100%); }
+  .bw .ground { position: absolute; left: 0; right: 0; bottom: 0; height: 44px; background: repeating-linear-gradient(90deg, #64ac36 0 22px, #5a9e30 22px 44px); border-top: 6px solid #7bc74a; }
+  .bw .dirt { position: absolute; left: 0; right: 0; bottom: 0; height: 24px; background: repeating-linear-gradient(90deg, #86603f 0 22px, #7a5636 22px 44px); }
+  .bw .tnt { position: absolute; left: 22%; bottom: 44px; width: 34px; height: 34px; background: linear-gradient(#c8321f 0 32%, #f0ebe0 32% 68%, #c8321f 68%); border: 2px solid #7d1d10; }
+  .bw .tnt::after { content: "TNT"; position: absolute; inset: 0; display: grid; place-items: center; font-size: 8px; font-weight: 900; color: #3a2320; }
+  .bw .boom { position: absolute; left: 44%; bottom: 38px; width: 64px; height: 64px; border-radius: 50%; background: radial-gradient(circle, #fff6c8 0 22%, #ffc24a 38%, #f0741e 62%, rgba(240, 116, 30, 0) 72%); }
+  .bw .deb { position: absolute; width: 10px; height: 10px; background: #86603f; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Sonnet <span>Games</span></h1>
+  <p>Small browser games built by Claude Sonnet 5.5, one prompt each. No installs, no build steps — just open and play.</p>
+</header>
+<main>
+  <div class="grid">
+    <!-- GAME CARDS: one <a class="card"> per game -->
+    <a class="card" href="games/blockworld/">
+      <div class="art bw" aria-hidden="true">
+        <div class="sun"></div>
+        <div class="cloud" style="left:8%;top:22%;width:44px"></div>
+        <div class="cloud" style="left:56%;top:40%;width:52px"></div>
+        <div class="hills"></div>
+        <div class="ground"></div><div class="dirt"></div>
+        <div class="tnt"></div>
+        <div class="boom"></div>
+        <div class="deb" style="left:60%;bottom:96px"></div>
+        <div class="deb" style="left:72%;bottom:82px;width:8px;height:8px;background:#7a7a80"></div>
+        <div class="deb" style="left:50%;bottom:112px;width:8px;height:8px"></div>
+      </div>
+      <div class="body">
+        <h2>Blockworld</h2>
+        <p>An endless Minecraft-style voxel sandbox: biomes, caves, lakes, sheep, a day/night cycle and TNT chain reactions with real tumbling physics.</p>
+        <div class="tags"><span>3D</span><span>Three.js</span><span>Rapier physics</span><span>Sandbox</span></div>
+        <div class="play">PLAY &rarr;</div>
+      </div>
+    </a>
+  </div>
+</main>
+<footer>WASD move · Space jump · Shift sprint · mouse look · left click break / light TNT · right click place — see each game's README section for full controls.</footer>
+</body>
+</html>
