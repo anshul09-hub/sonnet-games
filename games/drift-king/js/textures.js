@@ -24,7 +24,7 @@ export function makeRoadTexture(aniso) {
   const W = 512, H = 1024;
   const c = canvas(W, H), g = c.getContext('2d');
   const r = rng(7);
-  g.fillStyle = '#33343c';
+  g.fillStyle = '#26272f';
   g.fillRect(0, 0, W, H);
   // grain
   const img = g.getImageData(0, 0, W, H);
@@ -149,4 +149,27 @@ export function makeCarNumber(n, color = '#fff') {
   g.fillText(String(n), 64, 70);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
   return t;
+}
+
+// Roughness map for wet asphalt: mostly rough, with glossy puddles and a shiny racing line.
+export function makeRoadRoughness(aniso) {
+  const W = 512, H = 1024;
+  const c = canvas(W, H), g = c.getContext('2d');
+  const r = rng(31);
+  g.fillStyle = '#b8b8b8'; g.fillRect(0, 0, W, H); // ~0.72
+  for (let i = 0; i < 90; i++) {
+    const x = r() * W, y = r() * H, rx = 18 + r() * 60, ry = 30 + r() * 110;
+    const grd = g.createRadialGradient(x, y, 0, x, y, Math.max(rx, ry));
+    const v = 20 + r() * 40;
+    grd.addColorStop(0, `rgba(${v},${v},${v},0.95)`); grd.addColorStop(0.7, `rgba(${v},${v},${v},0.55)`); grd.addColorStop(1, 'rgba(184,184,184,0)');
+    g.save(); g.translate(x, y); g.scale(rx / Math.max(rx, ry), ry / Math.max(rx, ry)); g.translate(-x, -y);
+    g.fillStyle = grd; g.beginPath(); g.arc(x, y, Math.max(rx, ry), 0, 6.3); g.fill(); g.restore();
+  }
+  const uPx = (m) => ((m + EDGE) / (2 * EDGE)) * W;
+  for (const m of [-2.6, 2.6]) {
+    const grd = g.createLinearGradient(uPx(m - 1.5), 0, uPx(m + 1.5), 0);
+    grd.addColorStop(0, 'rgba(70,70,70,0)'); grd.addColorStop(0.5, 'rgba(70,70,70,0.7)'); grd.addColorStop(1, 'rgba(70,70,70,0)');
+    g.fillStyle = grd; g.fillRect(uPx(m - 1.5), 0, uPx(m + 1.5) - uPx(m - 1.5), H);
+  }
+  return tex(c, { repeat: true, srgb: false, aniso });
 }

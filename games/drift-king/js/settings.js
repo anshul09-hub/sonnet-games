@@ -2,15 +2,15 @@
 export const QUALITY = {
   low: {
     id: 'low', label: 'Low', dpr: 1, shadows: false, shadowMap: 1024, shadowRange: 70, terrainShadows: false,
-    bloom: false, bloomRes: 0.5, smaa: false, vegetation: 0.35, clouds: false, particles: 0.55, skids: 2500,
+    bloom: false, bloomRes: 0.5, smaa: false, grade: false, headlights: false, vegetation: 0.35, clouds: false, particles: 0.55, skids: 2500,
   },
   medium: {
     id: 'medium', label: 'Medium', dpr: 1.5, shadows: true, shadowMap: 2048, shadowRange: 78, terrainShadows: false,
-    bloom: true, bloomRes: 0.5, smaa: false, vegetation: 0.7, clouds: true, particles: 0.85, skids: 5000,
+    bloom: true, bloomRes: 0.5, smaa: false, grade: true, headlights: true, vegetation: 0.7, clouds: true, particles: 0.85, skids: 5000,
   },
   high: {
     id: 'high', label: 'High', dpr: 2, shadows: true, shadowMap: 4096, shadowRange: 100, terrainShadows: true,
-    bloom: true, bloomRes: 1, smaa: true, vegetation: 1, clouds: true, particles: 1, skids: 8000,
+    bloom: true, bloomRes: 1, smaa: true, grade: true, headlights: true, vegetation: 1, clouds: true, particles: 1, skids: 8000,
   },
 };
 

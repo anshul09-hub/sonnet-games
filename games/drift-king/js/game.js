@@ -6,6 +6,8 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { GradeShader } from './post.js';
 
 import { buildTrack, buildTerrain, EDGE, ROAD_HW } from './track.js';
 import { buildStaticPhysics } from './trackphysics.js';
@@ -113,7 +115,7 @@ export class Game {
     this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: q.id === 'low', powerPreference: 'high-performance', stencil: false });
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.05;
+    this.renderer.toneMappingExposure = 1.3;
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(60, 1, 0.15, 4000);
     this.scene.add(this.camera);
@@ -125,9 +127,11 @@ export class Game {
     if (!q.bloom) return;
     const c = new EffectComposer(this.renderer);
     c.addPass(new RenderPass(this.scene, this.camera));
-    this.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.6, 0.75, 0.92);
+    this.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.85, 0.85, 0.78);
     c.addPass(this.bloom);
     c.addPass(new OutputPass());
+    this.gradePass = null;
+    if (q.grade) { this.gradePass = new ShaderPass(GradeShader); c.addPass(this.gradePass); }
     if (q.smaa) c.addPass(new SMAAPass(innerWidth, innerHeight)); // anti-aliasing on the tone-mapped image
     this.composer = c;
     this.applySize();
@@ -180,6 +184,17 @@ export class Game {
       this.drivers.push(d.isPlayer ? null : new AIDriver(track, this.line, { skill: d.skill, name: d.name, lane: slot.side * 0.8, seed: d.seed, aggression: d.aggression }));
     });
     this.player = this.racers[0];
+    // real headlights (spot lights, no shadows): two on the player, one per rival
+    this.spots = [];
+    this.racers.forEach((r, i) => {
+      const n = r.isPlayer ? 2 : 1;
+      for (let k = 0; k < n; k++) {
+        const sp = new THREE.SpotLight(0xfff0d2, r.isPlayer ? 22 : 14, 80, 0.5, 0.8, 1.6);
+        sp.castShadow = false;
+        this.scene.add(sp, sp.target);
+        this.spots.push({ sp, i, side: n === 1 ? 0 : k === 0 ? -1 : 1 });
+      }
+    });
     // autopilot for the player after the finish
     this.autopilot = new AIDriver(track, this.line, { skill: 0.9, name: 'auto', seed: 5, aggression: 0 });
   }
@@ -638,6 +653,7 @@ export class Game {
     // visuals
     for (let i = 0; i < this.visuals.length; i++) this.visuals[i].update(this.vehicles[i], alpha, dt);
     this.props.syncVisuals();
+    this.updateHeadlights();
     // camera
     const st = this.state;
     this.camRig.update(dt, car, alpha, { orbitSpeed: st === 'title' ? 0.2 : 0.3, blendRate: st === 'countdown' ? 1.6 : 2.4 });
@@ -645,7 +661,8 @@ export class Game {
     // world (sky/shadows follow)
     this.tmpTarget = this.tmpTarget || new THREE.Vector3();
     this.tmpTarget.lerpVectors(car.prevPos, car.pos, alpha);
-    this.world.update(dt, { target: this.tmpTarget, cameraPos: this.camera.position }, this.time);
+    this.world.update(dt, { target: this.tmpTarget, cameraPos: this.camera.position, viewH: this.renderer.domElement.height }, this.time);
+    if (this.gradePass) this.gradePass.uniforms.uTime.value = (this.time * 7) % 100;
     // effects
     if (dt > 0) {
       for (const r of this.racers) this.effects.updateCar(r.car, dt, Math.abs(r.lateral), r.isPlayer);
@@ -657,6 +674,20 @@ export class Game {
     // draw
     if (this.composer) this.composer.render(); else this.renderer.render(this.scene, this.camera);
     this.stats.frames++;
+  }
+
+  updateHeadlights() {
+    const on = this.quality.headlights;
+    this._hp = this._hp || new THREE.Vector3(); this._ht = this._ht || new THREE.Vector3();
+    for (const { sp, i, side } of this.spots) {
+      sp.visible = on;
+      if (!on) continue;
+      const root = this.visuals[i].root;
+      this._hp.set(side * 0.62, 0.0, 2.3); root.localToWorld(this._hp); sp.position.copy(this._hp);
+      this._ht.set(side * 0.5, -1.4, 26); root.localToWorld(this._ht); sp.target.position.copy(this._ht);
+      sp.target.updateMatrixWorld();
+    }
+    for (const v of this.visuals) for (const b of v.beams) b.visible = on;
   }
 
   updateHUD(dt) {

@@ -5,6 +5,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { CAR } from './vehicle.js';
 import { clamp, damp } from './util.js';
 import { makeCarNumber } from './textures.js';
+import { beamVert, beamFrag } from './post.js';
 
 function extrudeProfile(pts, width, bevel = 0.05) {
   const shape = new THREE.Shape();
@@ -89,7 +90,7 @@ export function buildCar({ color = 0xff3b30, accent = 0xffffff, number = 1, shad
   inner.position.set(0, BODY_DY + 0.36, 0);
   pivot.add(inner);
 
-  const paint = new THREE.MeshStandardMaterial({ color, roughness: 0.28, metalness: 0.45, flatShading: true });
+  const paint = new THREE.MeshPhysicalMaterial({ color, roughness: 0.32, metalness: 0.55, clearcoat: 1, clearcoatRoughness: 0.12, flatShading: true });
   const accentMat = new THREE.MeshStandardMaterial({ color: accent, roughness: 0.4, metalness: 0.3, flatShading: true });
   const tailMat = new THREE.MeshStandardMaterial({ color: 0x400000, emissive: 0xff1010, emissiveIntensity: 1.2, roughness: 0.4 });
   const numMat = new THREE.MeshBasicMaterial({ map: makeCarNumber(number), transparent: true });
@@ -120,18 +121,33 @@ export function buildCar({ color = 0xff3b30, accent = 0xffffff, number = 1, shad
     flames.push(f);
   }
 
-  // fake blob shadow (used when real shadows are off)
+  // headlight beams (fake volumetrics)
+  const beams = [];
+  const beamGeo = new THREE.ConeGeometry(3.0, 26, 18, 1, true).translate(0, -13, 0).rotateX(-Math.PI / 2);
+  for (const sx of [-1, 1]) {
+    const bm = new THREE.Mesh(beamGeo, new THREE.ShaderMaterial({
+      vertexShader: beamVert, fragmentShader: beamFrag, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false,
+      uniforms: { uLen: { value: 26 }, uColor: { value: new THREE.Color(1.0, 0.86, 0.6) }, uAlpha: { value: 0.016 } },
+    }));
+    bm.position.set(sx * 0.62, -0.02, 2.2);
+    bm.rotation.x = 0.06;
+    bm.renderOrder = 4;
+    root.add(bm);
+    beams.push(bm);
+  }
+
+  // fake blob shadow (contact darkening under the car)
   const blob = new THREE.Mesh(
     new THREE.PlaneGeometry(2.9, 5.2).rotateX(-Math.PI / 2),
     new THREE.MeshBasicMaterial({ map: blobTexture(), transparent: true, opacity: 0.7, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }),
   );
-  blob.visible = !shadowsOn;
+  blob.material.opacity = shadowsOn ? 0.38 : 0.7;
   blob.renderOrder = 1;
 
   const _q = new THREE.Quaternion(), _p = new THREE.Vector3();
   const vis = {
-    root, blob, tailMat, flames, wheels, paint, leanZ: 0, leanX: 0, flick: 0,
-    setShadows(on) { blob.visible = !on; },
+    root, blob, tailMat, flames, wheels, paint, beams, leanZ: 0, leanX: 0, flick: 0,
+    setShadows(on) { blob.material.opacity = on ? 0.38 : 0.7; },
     update(car, alpha, dt) {
       _p.lerpVectors(car.prevPos, car.pos, alpha);
       _q.slerpQuaternions(car.prevQuat, car.quat, alpha);
@@ -160,7 +176,7 @@ export function buildCar({ color = 0xff3b30, accent = 0xffffff, number = 1, shad
         const s = b * (0.85 + 0.35 * Math.sin(this.flick + f.position.x * 9) * Math.sin(this.flick * 1.7));
         f.scale.set(1, 1, Math.max(0.01, s * 1.8));
       }
-      if (blob.visible) {
+      {
         const ground = car.groundPoint;
         if (ground) {
           blob.position.set(ground.x, ground.y + 0.04, ground.z);
