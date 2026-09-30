@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sonnet Games</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Browser games built by Claude Sonnet 5.5, one prompt each.">
+<meta name="theme-color" content="#7cc4ee">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23ffb01f'/%3E%3Cpath d='M32 10l6.5 14 15 2-11 10.5 2.8 15L32 44.5 18.7 51.5l2.8-15L10.5 26l15-2z' fill='%23fff3a0' stroke='%233b210b' stroke-width='3' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+  :root { --ink: #3b210b; --gold: #ffd23d; --wood: #7a4a1e; --wood-d: #4a2a0c;
+    --font: "Baloo 2", "Fredoka One", "Arial Rounded MT Bold", "Trebuchet MS", "Segoe UI", system-ui, sans-serif; }
+  * { box-sizing: border-box; }
+  html { min-height: 100%; }
+  body { margin: 0; min-height: 100vh; font-family: var(--font); color: var(--ink);
+    background: linear-gradient(#77bff0 0%, #b9e4f7 38%, #e7f7f4 55%, #8fdc6a 55.2%, #58b84a 100%) fixed; overflow-x: hidden; }
+  .sky-clouds { position: fixed; inset: 0 0 45% 0; pointer-events: none; overflow: hidden; }
+  .cloud { position: absolute; width: 220px; height: 64px; background: #fff; border-radius: 64px; opacity: .92; filter: drop-shadow(0 8px 0 rgba(150,190,220,.35)); animation: drift linear infinite; }
+  .cloud::before, .cloud::after { content: ""; position: absolute; background: #fff; border-radius: 50%; }
+  .cloud::before { width: 96px; height: 96px; left: 30px; top: -46px; }
+  .cloud::after { width: 70px; height: 70px; left: 112px; top: -32px; }
+  .c1 { top: 8%; left: -260px; animation-duration: 90s; transform: scale(1.1); }
+  .c2 { top: 22%; left: -260px; animation-duration: 130s; animation-delay: -50s; transform: scale(.7); }
+  .c3 { top: 4%; left: -260px; animation-duration: 110s; animation-delay: -20s; transform: scale(.85); }
+  @keyframes drift { to { left: 110vw; } }
+  header { position: relative; text-align: center; padding: clamp(28px, 7vh, 72px) 20px 8px; }
+  h1 { margin: 0; font-weight: 900; font-style: italic; line-height: .9; letter-spacing: 3px; color: var(--gold); font-size: clamp(48px, 10vw, 112px);
+    -webkit-text-stroke: 10px var(--wood-d); paint-order: stroke fill; text-shadow: 0 8px 0 #a4480f; transform: rotate(-2deg); filter: drop-shadow(0 12px 14px rgba(0,0,0,.25)); }
+  header p { margin: 26px 0 0; font-size: clamp(16px, 2.4vw, 24px); font-weight: 800; color: #fff; letter-spacing: 2px; text-shadow: 0 2px 0 rgba(0,0,0,.35), 0 4px 14px rgba(0,0,0,.3); }
+  main { position: relative; max-width: 1240px; margin: 0 auto; padding: 36px 20px 60px; display: grid; gap: 34px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr)); }
+  .card { display: block; text-decoration: none; color: inherit; border-radius: 30px; overflow: hidden; background: linear-gradient(#fff9e6, #ffeec2);
+    border: 7px solid var(--wood-d); box-shadow: 0 10px 0 #2d1808, 0 26px 50px rgba(0,0,0,.35); transition: transform .18s cubic-bezier(.2,1.4,.4,1), box-shadow .18s; }
+  .card:hover, .card:focus-visible { transform: translateY(-8px) rotate(-.4deg); box-shadow: 0 18px 0 #2d1808, 0 36px 60px rgba(0,0,0,.4); outline: none; }
+  .card:focus-visible { outline: 4px solid #fff; outline-offset: 4px; }
+  .card:active { transform: translateY(2px); box-shadow: 0 6px 0 #2d1808, 0 12px 24px rgba(0,0,0,.35); }
+  .cover { aspect-ratio: 16 / 9; width: 100%; display: block; border-bottom: 7px solid var(--wood-d); }
+  .body { padding: 22px 26px 26px; display: flex; flex-direction: column; gap: 12px; }
+  .body h2 { margin: 0; font-size: clamp(30px, 4vw, 44px); font-weight: 900; line-height: 1; }
+  .body p { margin: 0; font-size: 19px; font-weight: 600; line-height: 1.35; opacity: .88; }
+  .tags { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tags span { padding: 4px 12px; border-radius: 14px; font-size: 14px; font-weight: 800; letter-spacing: 1px; background: #ffe08a; border: 2px solid #c9902a; }
+  .play { align-self: flex-start; margin-top: 4px; font-weight: 900; font-size: 28px; letter-spacing: 2px; padding: 14px 44px; border-radius: 20px; color: #103a0d;
+    background: linear-gradient(#8cf07f, #45c23c); border-bottom: 7px solid #2c8f2f; box-shadow: 0 6px 0 rgba(0,0,0,.18), 0 12px 20px rgba(0,0,0,.25), inset 0 2px 0 rgba(255,255,255,.7); text-shadow: 0 1px 0 rgba(255,255,255,.6); }
+  .card:hover .play { filter: brightness(1.08); }
+  footer { position: relative; text-align: center; padding: 0 20px 34px; color: #fff; font-weight: 700; text-shadow: 0 2px 6px rgba(0,0,0,.5); }
+  @media (prefers-reduced-motion: reduce) { .cloud { animation: none; left: 20%; } .card { transition: none; } }
+</style>
+</head>
+<body>
+<div class="sky-clouds" aria-hidden="true"><div class="cloud c1"></div><div class="cloud c2"></div><div class="cloud c3"></div></div>
+
+<header>
+  <h1>SONNET GAMES</h1>
+  <p>Games built by Claude Sonnet 5.5 &middot; one prompt each</p>
+</header>
+
+<!-- One card per game in games/. To add a game, copy a card and change the href, cover, title and text. -->
+<main>
+  <a class="card" href="games/tower-smash/" aria-label="Play Tower Smash">
+    <svg class="cover" viewBox="0 0 640 360" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A catapult on a green hill aiming at a stone castle across a river">
+      <defs>
+        <linearGradient id="ts-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4b9de8"/><stop offset=".7" stop-color="#bfe8f7"/></linearGradient>
+        <linearGradient id="ts-hill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fe05a"/><stop offset="1" stop-color="#4fae3a"/></linearGradient>
+        <linearGradient id="ts-water" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#3ea6e6"/><stop offset=".5" stop-color="#7fdcf0"/><stop offset="1" stop-color="#3ea6e6"/></linearGradient>
+        <radialGradient id="ts-boom" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff6b0"/><stop offset=".45" stop-color="#ffa030"/><stop offset="1" stop-color="#ff5a1a" stop-opacity="0"/></radialGradient>
+      </defs>
+      <rect width="640" height="360" fill="url(#ts-sky)"/>
+      <path d="M0 210 L80 130 L150 200 L250 110 L340 200 L430 130 L520 205 L600 140 L640 180 L640 260 L0 260z" fill="#9cc7e0"/>
+      <g fill="#fff" opacity=".95"><ellipse cx="120" cy="58" rx="50" ry="17"/><ellipse cx="98" cy="48" rx="28" ry="16"/><ellipse cx="140" cy="44" rx="30" ry="18"/>
+        <ellipse cx="470" cy="42" rx="44" ry="14"/><ellipse cx="452" cy="34" rx="24" ry="13"/><ellipse cx="488" cy="32" rx="26" ry="15"/></g>
+      <path d="M0 230 Q60 215 130 235 L215 330 L0 360z" fill="url(#ts-hill)"/>
+      <path d="M215 250 Q250 300 300 360 L440 360 Q400 300 420 250z" fill="url(#ts-water)"/>
+      <path d="M270 300 q20 -8 40 0 M330 335 q20 -8 40 0 M255 265 q14 -6 28 0" stroke="#fff" stroke-width="3" fill="none" opacity=".7" stroke-linecap="round"/>
+      <path d="M400 245 Q470 232 540 245 L640 236 L640 360 L430 360 Q410 300 400 245z" fill="url(#ts-hill)"/>
+      <!-- catapult -->
+      <g transform="translate(64 200)">
+        <rect x="-8" y="26" width="86" height="9" rx="3" fill="#7a4a1e" stroke="#3b210b" stroke-width="3"/>
+        <circle cx="6" cy="40" r="13" fill="#6b4526" stroke="#3b210b" stroke-width="3"/><circle cx="62" cy="40" r="13" fill="#6b4526" stroke="#3b210b" stroke-width="3"/>
+        <path d="M34 28 L34 -6" stroke="#7a4a1e" stroke-width="9" stroke-linecap="round"/>
+        <path d="M34 -6 L70 -44" stroke="#8a5a2a" stroke-width="8" stroke-linecap="round"/>
+        <path d="M62 -44 q14 -4 16 10 q-12 6 -22 -4z" fill="#8a5a2a" stroke="#3b210b" stroke-width="3"/>
+        <circle cx="70" cy="-48" r="9" fill="#8b8f96" stroke="#3b210b" stroke-width="3"/>
+      </g>
+      <!-- dotted arc -->
+      <g fill="#fff" stroke="#3b210b" stroke-width="1.5"><circle cx="150" cy="140" r="4.5"/><circle cx="185" cy="112" r="4.5"/><circle cx="222" cy="95" r="4.5"/><circle cx="260" cy="88" r="4.5"/><circle cx="298" cy="92" r="4.5"/><circle cx="335" cy="106" r="4.5"/><circle cx="371" cy="130" r="4.5"/></g>
+      <!-- castle -->
+      <g stroke="#3b210b" stroke-width="3" stroke-linejoin="round">
+        <rect x="448" y="170" width="52" height="82" fill="#b8bdc4"/>
+        <path d="M444 170 h10 v-10 h10 v10 h10 v-10 h10 v10 h10 v-10 h10 v10 h6 v0z" fill="#b8bdc4"/>
+        <rect x="530" y="136" width="46" height="116" fill="#c2c7ce"/>
+        <path d="M526 136 h10 v-10 h10 v10 h10 v-10 h10 v10 h6z" fill="#c2c7ce"/>
+        <rect x="486" y="205" width="12" height="20" rx="6" fill="#4a5568"/><rect x="546" y="170" width="12" height="20" rx="6" fill="#4a5568"/>
+        <path d="M553 136 V96" stroke="#5b3a20" stroke-width="4" fill="none"/><path d="M555 98 l30 10 -30 12z" fill="#ef3b3b"/>
+        <rect x="470" y="222" width="14" height="30" fill="#8b5a2b"/>
+      </g>
+      <circle cx="470" cy="215" r="60" fill="url(#ts-boom)" opacity=".85"/>
+      <g fill="#b8bdc4" stroke="#3b210b" stroke-width="2.5"><rect x="404" y="216" width="14" height="10" transform="rotate(-20 404 216)"/><rect x="392" y="240" width="11" height="8" transform="rotate(25 392 240)"/><rect x="420" y="190" width="10" height="8" transform="rotate(40 420 190)"/></g>
+    </svg>
+    <div class="body">
+      <h2>Tower Smash</h2>
+      <p>Pull back the catapult and demolish castles built from hundreds of real physics blocks. Glass shatters, wood splinters, stone chips and red TNT barrels blow it all sky high. 12 levels, 5 kinds of ammo, 3 stars each.</p>
+      <div class="tags"><span>3D PHYSICS</span><span>THREE.JS</span><span>RAPIER</span><span>12 LEVELS</span></div>
+      <span class="play">PLAY</span>
+    </div>
+  </a>
+</main>
+
+<footer>Each game is plain HTML, CSS and JavaScript. No build step.</footer>
+</body>
+</html>

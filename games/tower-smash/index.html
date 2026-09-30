@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tower Smash</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="description" content="A 3D castle-smashing physics game. Aim the catapult, topple the towers, knock down every flag.">
+<meta name="theme-color" content="#7cc4ee">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%237cc4ee'/%3E%3Cpath d='M14 50V26h8v6h6v-6h8v6h6v-6h8v24z' fill='%23c9c2b8' stroke='%23554' stroke-width='3'/%3E%3Cpath d='M32 26V10l14 5-14 5' fill='%23e8323a'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
+    "@dimforge/rapier3d-compat": "https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.14.0/rapier.es.js"
+  }
+}
+</script>
+</head>
+<body>
+<div id="stage"></div>
+<div id="vignette"></div>
+<canvas id="aim"></canvas>
+
+<!-- loading -->
+<div id="loader" class="screen show">
+  <div class="loader-box">
+    <div class="spinner"></div>
+    <div id="loader-text">Loading physics engine…</div>
+  </div>
+</div>
+
+<!-- title -->
+<div id="title" class="screen">
+  <div class="title-shade"></div>
+  <div class="title-col">
+    <h1 class="logo"><span class="l1">TOWER</span><span class="l2">SMASH</span></h1>
+    <p class="tagline">Aim. Launch. Demolish.</p>
+    <div class="menu">
+      <button class="btn big green" id="btn-play">PLAY</button>
+      <button class="btn" id="btn-levels">LEVELS</button>
+      <button class="btn blue" id="btn-settings">SETTINGS</button>
+    </div>
+    <div class="title-foot"><span id="title-stars"></span><span class="keys">Drag to aim · Esc pause · M mute</span></div>
+  </div>
+</div>
+
+<!-- level select -->
+<div id="levels" class="screen">
+  <div class="levels-panel">
+    <div class="levels-head">
+      <button class="btn small" id="levels-back">&#9664; BACK</button>
+      <h2>Choose Your Battle</h2>
+      <div class="star-total" id="levels-stars"></div>
+    </div>
+    <div class="map-wrap"><svg id="map" viewBox="0 0 1000 620" preserveAspectRatio="xMidYMid meet"></svg></div>
+  </div>
+</div>
+
+<!-- HUD -->
+<div id="hud" class="screen">
+  <div class="hud-top-left">
+    <div class="pill level-pill"><span id="hud-level"></span></div>
+    <div class="pill flags-pill"><span class="lbl">FLAGS</span><span id="hud-flags"></span></div>
+    <div class="pill shots-pill"><span class="lbl">SHOTS</span><span id="hud-shots">0</span></div>
+  </div>
+  <div class="hud-top-right">
+    <button class="icon-btn" id="hud-restart" title="Restart (R)" aria-label="Restart"><svg viewBox="0 0 24 24"><path d="M12 5V2L7 6.5 12 11V8a5 5 0 1 1-5 5H5a7 7 0 1 0 7-8z" fill="currentColor"/></svg></button>
+    <button class="icon-btn" id="hud-mute" title="Mute (M)" aria-label="Mute"><svg viewBox="0 0 24 24"><path id="mute-path" d="M3 9v6h4l5 4V5L7 9H3zm13.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4z" fill="currentColor"/></svg></button>
+    <button class="icon-btn" id="hud-pause" title="Pause (Esc)" aria-label="Pause"><svg viewBox="0 0 24 24"><path d="M7 5h4v14H7zm6 0h4v14h-4z" fill="currentColor"/></svg></button>
+  </div>
+  <div id="ammo-tray"></div>
+  <div id="hint"></div>
+  <div id="toasts"></div>
+  <div id="banner"><div class="b-level"></div><div class="b-name"></div><div class="b-tip"></div><div class="b-new"></div></div>
+  <div id="letterbox"><i></i><i></i></div>
+  <div id="slowmo-label">SLOW-MO</div>
+</div>
+
+<!-- pause -->
+<div id="pause" class="screen dim">
+  <div class="card">
+    <div class="ribbon">PAUSED</div>
+    <div class="card-body col">
+      <button class="btn big green" id="pause-resume">RESUME</button>
+      <button class="btn" id="pause-restart">RESTART</button>
+      <button class="btn blue" id="pause-levels">LEVELS</button>
+      <button class="btn blue" id="pause-settings">SETTINGS</button>
+      <button class="btn red small" id="pause-quit">QUIT TO TITLE</button>
+    </div>
+  </div>
+</div>
+
+<!-- settings -->
+<div id="settings" class="screen dim">
+  <div class="card wide">
+    <div class="ribbon">SETTINGS</div>
+    <div class="card-body col">
+      <div class="row"><label>Graphics</label>
+        <div class="seg" id="seg-quality"><button data-q="low">Low</button><button data-q="medium">Medium</button><button data-q="high">High</button></div></div>
+      <div class="row"><label for="rng-music">Music</label><input type="range" id="rng-music" min="0" max="1" step="0.05"></div>
+      <div class="row"><label for="rng-sfx">Effects</label><input type="range" id="rng-sfx" min="0" max="1" step="0.05"></div>
+      <div class="row"><label>Sound</label><button class="btn small" id="set-mute">ON</button></div>
+      <div class="row"><label>Progress</label><button class="btn red small" id="set-reset">RESET</button></div>
+      <button class="btn big" id="settings-close">DONE</button>
+    </div>
+  </div>
+</div>
+
+<!-- complete -->
+<div id="complete" class="screen dim">
+  <canvas id="confetti"></canvas>
+  <div class="card wide">
+    <div class="ribbon gold" id="cmp-title">LEVEL COMPLETE!</div>
+    <div class="card-body col center">
+      <div class="stars" id="cmp-stars"><i></i><i></i><i></i></div>
+      <div class="cmp-stats"><div><b id="cmp-shots">0</b><span>SHOTS</span></div><div><b id="cmp-best">0</b><span>BEST</span></div></div>
+      <div class="cmp-note" id="cmp-note"></div>
+      <div class="cmp-unlock" id="cmp-unlock"></div>
+      <div class="row-btns">
+        <button class="btn" id="cmp-replay">REPLAY</button>
+        <button class="btn blue" id="cmp-levels">LEVELS</button>
+        <button class="btn big green" id="cmp-next">NEXT &#9654;</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- fail -->
+<div id="fail" class="screen dim">
+  <div class="card">
+    <div class="ribbon red">OUT OF AMMO</div>
+    <div class="card-body col center">
+      <p class="fail-text">The flags are still flying. Think about where the tower is weakest.</p>
+      <button class="btn big green" id="fail-retry">TRY AGAIN</button>
+      <button class="btn blue" id="fail-levels">LEVELS</button>
+    </div>
+  </div>
+</div>
+
+<div id="error" class="screen dim"><div class="card"><div class="ribbon red">COULD NOT START</div><div class="card-body col center"><p id="error-text"></p><button class="btn" onclick="location.reload()">RELOAD</button></div></div></div>
+
+<script type="module">
+  import('./js/main.js').catch((e) => {
+    console.error(e);
+    document.getElementById('loader').classList.remove('show');
+    document.getElementById('error-text').textContent = 'The game engine could not be loaded. Check your connection and reload. (' + (e && e.message || e) + ')';
+    document.getElementById('error').classList.add('show');
+  });
+</script>
+</body>
+</html>
