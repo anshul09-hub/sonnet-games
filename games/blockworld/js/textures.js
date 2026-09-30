@@ -82,15 +82,15 @@ export function buildAtlas() {
     return [mul([178, 140, 82], k)];
   });
   // cobblestone: voronoi cells
-  const seeds = Array.from({ length: 9 }, () => [rnd() * 16, rnd() * 16, 0.75 + rnd() * 0.4]);
+  const seeds = Array.from({ length: 13 }, () => [rnd() * 16, rnd() * 16, 0.75 + rnd() * 0.4]);
   each(T.COBBLE, (x, y) => {
     let d1 = 1e9, d2 = 1e9, s1 = null;
     for (const s of seeds) for (const ox of [-16, 0, 16]) for (const oy of [-16, 0, 16]) {
       const d = Math.hypot(x - s[0] - ox, y - s[1] - oy);
       if (d < d1) { d2 = d1; d1 = d; s1 = s; } else if (d < d2) d2 = d;
     }
-    const edge = d2 - d1 < 1.1;
-    return [mul([128, 126, 126], edge ? 0.5 : s1[2] * (0.94 + rnd() * 0.1))];
+    const edge = d2 - d1 < 0.9;
+    return [mul([132, 130, 130], edge ? 0.62 : s1[2] * (0.94 + rnd() * 0.1))];
   });
   // glass
   each(T.GLASS, (x, y) => {

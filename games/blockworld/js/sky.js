@@ -92,7 +92,7 @@ export class Sky {
     sg.setAttribute('aPh', new THREE.BufferAttribute(ph, 1));
     this.starMat = new THREE.ShaderMaterial({
       uniforms: { uTime: U.uTime, uNight: { value: 0 }, uPx: { value: 1 } }, vertexShader: STAR_VS, fragmentShader: STAR_FS,
-      transparent: true, depthWrite: false, depthTest: false,
+      transparent: true, depthWrite: false, depthTest: true,
     });
     this.stars = new THREE.Points(sg, this.starMat);
     this.stars.renderOrder = -9; this.stars.frustumCulled = false;
@@ -103,7 +103,7 @@ export class Sky {
       const m = new THREE.Mesh(new THREE.PlaneGeometry(size, size), new THREE.MeshBasicMaterial({ map: tex, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, fog: false }));
       m.material.color.setScalar(mult); m.renderOrder = -8; m.frustumCulled = false; scene.add(m); return m;
     };
-    this.sun = mk(makeSunTexture(), 78, 1.5);
+    this.sun = mk(makeSunTexture(), 78, 0.95);
     this.moon = mk(makeMoonTexture(), 56, 1.1);
 
     // clouds: three offset layers of the same procedural mask

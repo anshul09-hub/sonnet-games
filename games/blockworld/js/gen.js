@@ -117,7 +117,7 @@ export class Terrain {
       const h = hs[ci], top = tops[ci], biome = bio[ci];
       const wx = x0 + x, wz = z0 + z;
       let fill = 3, under = B.DIRT;
-      if (top === B.SAND) { fill = biome === BIOME.DESERT ? 5 : 3; under = biome === BIOME.DESERT ? B.SANDSTONE : B.DIRT; }
+      if (top === B.SAND) { fill = biome === BIOME.DESERT ? 5 : 4; under = biome === BIOME.DESERT ? B.SANDSTONE : B.SAND; }
       else if (top === B.GRAVEL) { fill = 3; under = B.STONE; }
       else if (top === B.SNOW) { fill = 2; under = B.SNOW; }
       else if (top === B.STONE) { fill = 0; under = B.STONE; }
