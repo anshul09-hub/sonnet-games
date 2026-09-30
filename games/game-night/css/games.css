@@ -59,3 +59,15 @@ table.stats tr.w td { color: var(--y); }
 .sn-hint { position: absolute; left: 50%; bottom: calc(14px + var(--safe-b)); transform: translateX(-50%) translateY(10px); padding: .5em 1.2em; border-radius: 40px; background: rgba(20,12,56,.82); border: 2px solid #6c4df0; font-size: .82rem; opacity: 0; transition: all .3s; pointer-events: none !important; text-align: center; max-width: 94vw; }
 .sn-hint.on { opacity: 1; transform: translateX(-50%); }
 @media (max-width: 760px), (max-aspect-ratio: 1/1) { .sn-chip { top: calc(120px + var(--safe-t)); font-size: .68rem; } .sn-feed { top: calc(152px + var(--safe-t)); } .lp-len { font-size: .6rem; } }
+
+/* ---- Blaster Brawl HUD ---- */
+.bb-hp { margin-top: 3px; height: 6px; }
+.bb-hp i { transform: scaleX(1); transition: transform .15s; }
+.bb-weapon { position: absolute; left: calc(14px + var(--safe-l)); bottom: calc(14px + var(--safe-b)); display: flex; align-items: center; gap: 10px; padding: .45em 1.1em; border-radius: 40px; background: rgba(20,12,56,.82); border: 2px solid #6c4df0; pointer-events: none !important; font-weight: 900; flex-wrap: wrap; max-width: 60vw; }
+.bb-wname { letter-spacing: .08em; font-size: .85rem; } .bb-ammo { color: var(--y); font-size: 1rem; min-width: 2.2em; }
+.bb-dash { width: 56px; height: 8px; border-radius: 4px; background: rgba(255,255,255,.14); overflow: hidden; } .bb-dash i { display: block; height: 100%; background: #8fe8ff; transform-origin: left; }
+.bb-buffs { display: flex; gap: 6px; } .bb-buffs .bf { font-size: .62rem; padding: .15em .6em; border-radius: 99px; background: #26436a; } .bb-buffs .bf.v { background: #6a5a12; }
+.bb-respawn { position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%); font-size: clamp(1.4rem, 5vw, 2.6rem); font-weight: 900; letter-spacing: .1em; text-shadow: 0 4px 0 rgba(0,0,0,.4); opacity: 0; transition: opacity .2s; pointer-events: none !important; -webkit-text-stroke: 2px #1a1046; paint-order: stroke fill; }
+.bb-respawn.on { opacity: 1; }
+canvas#gl.bb-cursor { cursor: crosshair; }
+@media (max-width: 760px), (max-aspect-ratio: 1/1) { .bb-weapon { bottom: calc(150px + var(--safe-b)); left: 50%; transform: translateX(-50%); } }
