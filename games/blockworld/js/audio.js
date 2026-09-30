@@ -124,6 +124,11 @@ export class GameAudio {
   thud(x, y, z) { const s = this.spatial(x, y, z, 12); this.tone({ f: 120, fEnd: 60, dur: 0.12, gain: 0.12, pan: s.p, vol: s.g }); }
   pop() { this.tone({ f: 900, fEnd: 400, dur: 0.05, gain: 0.05 }); }
 
+  whoosh(power = 1) {
+    this.noise({ type: 'bandpass', f: 400, fEnd: 2600, q: 0.7, dur: 0.7, gain: 0.22 * power, a: 0.08 });
+    this.noise({ type: 'highpass', f: 1800, dur: 0.45, gain: 0.08 * power, a: 0.05, delay: 0.05 });
+  }
+
   // ---- TNT ----
   fuseStart() {
     if (!this.ctx) return;

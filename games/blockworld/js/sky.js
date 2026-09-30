@@ -5,11 +5,11 @@ import { makeSunTexture, makeMoonTexture } from './textures.js';
 
 const srgb = (r, g, b) => new THREE.Color().setRGB(r, g, b, THREE.SRGBColorSpace);
 const C = {
-  zDay: srgb(0.27, 0.53, 0.93), hDay: srgb(0.66, 0.82, 0.98),
+  zDay: srgb(0.16, 0.40, 0.82), hDay: srgb(0.60, 0.76, 0.94),
   zNight: srgb(0.012, 0.02, 0.07), hNight: srgb(0.035, 0.055, 0.13),
   duskZ: srgb(0.26, 0.30, 0.58), duskSet: srgb(1.0, 0.50, 0.24), duskRise: srgb(1.0, 0.62, 0.52),
   lightDay: new THREE.Color(1.0, 1.0, 1.0), lightNight: new THREE.Color(0.075, 0.105, 0.26),
-  lightDusk: new THREE.Color(1.0, 0.5, 0.26),
+  lightDusk: new THREE.Color(1.0, 0.5, 0.26), sunDusk: new THREE.Color(1.0, 0.52, 0.22),
 };
 const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 
@@ -68,7 +68,7 @@ export class Sky {
     this.sunDir = new THREE.Vector3(0, 1, 0);
     this.dayF = 1; this.dusk = 0; this.night = 0;
     this.zenith = new THREE.Color(); this.horizon = new THREE.Color();
-    this.glow = new THREE.Color(); this.tmp = new THREE.Color();
+    this.glow = new THREE.Color(); this.tmp = new THREE.Color(); this.tmp2 = new THREE.Color(); this.tmp3 = new THREE.Color();
     this.lightColor = new THREE.Color();
     this.frozen = false;
 
@@ -103,8 +103,8 @@ export class Sky {
       const m = new THREE.Mesh(new THREE.PlaneGeometry(size, size), new THREE.MeshBasicMaterial({ map: tex, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, fog: false }));
       m.material.color.setScalar(mult); m.renderOrder = -8; m.frustumCulled = false; scene.add(m); return m;
     };
-    this.sun = mk(makeSunTexture(), 78, 0.95);
-    this.moon = mk(makeMoonTexture(), 56, 1.1);
+    this.sun = mk(makeSunTexture(), 78, 2.2);
+    this.moon = mk(makeMoonTexture(), 56, 1.5);
 
     // clouds: three offset layers of the same procedural mask
     this.cloudMats = [];
@@ -137,10 +137,28 @@ export class Sky {
     this.horizon.copy(C.hNight).lerp(C.hDay, this.dayF).lerp(duskC, this.dusk * 0.88);
     this.glow.copy(duskC).lerp(new THREE.Color(1, 0.95, 0.8), this.dayF * (1 - this.dusk));
     this.dome.material.uniforms.uGlowAmt.value = 0.35 + this.dusk * 1.1 + this.dayF * 0.2 - this.night * 0.3;
+    // ---- directional light: sun by day, moon by night ----
+    const sunI = smooth(-0.04, 0.16, e);
+    const moonI = smooth(-0.02, -0.25, e) * 0.36;
+    const useSun = e > -0.03;
+    U.uSunDir.value.copy(this.sunDir); if (!useSun) U.uSunDir.value.negate();
+    U.uSunView.value.copy(this.sunDir);
+    const sunCol = this.tmp.setRGB(1.0, 0.94, 0.82).lerp(C.sunDusk, Math.min(1, this.dusk * 1.2));
+    U.uSunColor.value.copy(sunCol).multiplyScalar(1.4 * sunI);
+    if (!useSun) U.uSunColor.value.setRGB(0.55, 0.68, 1.0).multiplyScalar(moonI * 1.6);
+    // ambient sky light: desaturated mix of zenith and horizon, dim at night
+    const lum = (c) => c.r * 0.3 + c.g * 0.59 + c.b * 0.11;
+    const ac = this.tmp2.copy(this.zenith).lerp(this.horizon, 0.5);
+    const l = lum(ac);
+    ac.multiplyScalar(0.55).r += l * 0.45; ac.g += l * 0.45; ac.b += l * 0.45;
+    const ambK = 0.16 + 0.78 * this.dayF;
+    U.uAmbSky.value.copy(ac).multiplyScalar(ambK).add(this.tmp3.setRGB(0.02, 0.034, 0.085).multiplyScalar(this.night));
+    U.uAmbGround.value.copy(U.uAmbSky.value).multiplyScalar(0.32).add(this.tmp3.setRGB(0.10, 0.085, 0.06).multiplyScalar(this.dayF * 0.6));
+    U.uSunGlow.value.copy(this.glow).multiplyScalar(0.55 * Math.max(0, this.dayF * 0.6 + this.dusk * 0.9) * (1 - this.night));
     // world light
     this.lightColor.copy(C.lightNight).lerp(C.lightDay, this.dayF).lerp(C.lightDusk, this.dusk * 0.8 * this.dayF);
     U.uSkyLight.value.copy(this.lightColor);
-    U.uCave.value.setRGB(0.075, 0.08, 0.095);
+    U.uCave.value.setRGB(0.05, 0.055, 0.07);
     U.uFogColor.value.copy(this.horizon);
     U.uWaterTint.value.setRGB(0.03, 0.2, 0.46);
     this.starMat.uniforms.uNight.value = Math.max(0, this.night - 0.15) / 0.85;
@@ -154,11 +172,15 @@ export class Sky {
   update(dt, camera, pixelRatio) {
     if (!this.frozen) { this.time = (this.time + dt / this.dayLength) % 1; }
     this.applyState();
-    const cp = camera.position;
+    this.starMat.uniforms.uPx.value = pixelRatio;
+    this.place(camera.position);
+  }
+
+  // position the sky objects around a viewpoint (the reflection pass calls this with its mirrored camera)
+  place(cp) {
     this.dome.position.copy(cp);
     this.stars.position.copy(cp);
     this.stars.rotation.z = (this.time - 0.25) * Math.PI * 2 - Math.PI / 2;
-    this.starMat.uniforms.uPx.value = pixelRatio;
     this.sun.position.copy(cp).addScaledVector(this.sunDir, 380);
     this.sun.lookAt(cp); this.sun.visible = this.sunDir.y > -0.25;
     this.moon.position.copy(cp).addScaledVector(this.sunDir, -380);

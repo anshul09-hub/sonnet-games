@@ -19,6 +19,7 @@ export class World {
     this.useAO = true;
     this.listeners = [];
     this.results = [];
+    this.shadowHook = null;
     this.dirty = [];                 // high-priority remesh
     this.scan = true;
     this.pcx = 1e9; this.pcz = 1e9;
@@ -141,25 +142,20 @@ export class World {
     if (!this.scan) return;
     let busy = false;
     const genR2 = (R + 2.5) * (R + 2.5), meshR2 = (R + 0.5) * (R + 0.5);
-    // generation
+    // one pass, nearest chunks first: generate what is missing, mesh what is ready
     for (let i = 0; i < OFFSETS.length; i++) {
       const o = OFFSETS[i]; if (o[2] > genR2) break;
       const cx = pcx + o[0], cz = pcz + o[1], k = cx + ',' + cz;
       let c = this.chunks.get(k);
-      if (c && (c.data || c.genPending)) continue;
-      const w = free(); if (!w) { busy = true; break; }
-      if (!c) { c = { cx, cz, key: k, data: null, genPending: false, mesh: null, ver: 0, meshedVer: -1, meshPending: 0, appliedVer: -1, dirtyQ: false }; this.chunks.set(k, c); }
-      c.genPending = true; w.busy++;
-      const ed = this.edits.get(k);
-      w.postMessage({ type: 'gen', seed: this.seed, cx, cz, epoch: this.epoch, edits: ed ? Array.from(ed, ([a, b]) => (a << 5) | b) : null });
-    }
-    if (!busy) {
-      // meshing
-      for (let i = 0; i < OFFSETS.length; i++) {
-        const o = OFFSETS[i]; if (o[2] > meshR2) break;
-        const c = this.chunks.get((pcx + o[0]) + ',' + (pcz + o[1]));
-        if (!c || !c.data || c.meshPending || c.meshedVer === c.ver) continue;
-        if (!this.neighborsReady(c)) continue;
+      if (!c || (!c.data && !c.genPending)) {
+        const w = free(); if (!w) { busy = true; break; }
+        if (!c) { c = { cx, cz, key: k, data: null, genPending: false, mesh: null, ver: 0, meshedVer: -1, meshPending: 0, appliedVer: -1, dirtyQ: false }; this.chunks.set(k, c); }
+        c.genPending = true; w.busy++;
+        const ed = this.edits.get(k);
+        w.postMessage({ type: 'gen', seed: this.seed, cx, cz, epoch: this.epoch, edits: ed ? Array.from(ed, ([a, b]) => (a << 5) | b) : null });
+        continue;
+      }
+      if (o[2] <= meshR2 && c.data && !c.meshPending && c.meshedVer !== c.ver && this.neighborsReady(c)) {
         const w = free(); if (!w) { busy = true; break; }
         this.dispatchMesh(w, c);
       }
@@ -192,7 +188,7 @@ export class World {
       if (!c) continue;
       c.meshPending = Math.max(0, c.meshPending - 1);
       if (m.ver < c.appliedVer) continue;   // stale result overtaken by a newer one
-      c.appliedVer = m.ver;
+      c.appliedVer = m.ver; c.water = m.water;
       const g = new THREE.BufferGeometry();
       g.setAttribute('position', new THREE.BufferAttribute(m.pos, 3));
       g.setAttribute('a_uv', new THREE.BufferAttribute(m.uv, 2, true));
@@ -211,12 +207,13 @@ export class World {
         mesh.userData.chunk = c;
         c.mesh = mesh; this.scene.add(mesh);
       }
+      if (this.shadowHook) this.shadowHook.chunkUpdated(c);
       if (c.meshedVer !== c.ver && !c.dirtyQ) { c.dirtyQ = true; this.dirty.push(c); }
     }
   }
 
   dropMesh(c) {
-    if (c.mesh) { this.scene.remove(c.mesh); c.mesh.geometry.dispose(); c.mesh = null; }
+    if (c.mesh) { if (this.shadowHook) this.shadowHook.chunkRemoved(c); this.scene.remove(c.mesh); c.mesh.geometry.dispose(); c.mesh = null; }
   }
 
   update(fx, fz, budgetMs = 3) {
@@ -237,6 +234,13 @@ export class World {
     for (const c of this.chunks.values()) { c.ver++; }
     this.scan = true;
     // re-mesh keeps old geometry until the new one arrives
+  }
+
+  // is there any sea/lake mesh within `r` chunks of this position?
+  waterNear(x, z, r) {
+    const cx = Math.floor(x / CS), cz = Math.floor(z / CS);
+    for (let dz = -r; dz <= r; dz++) for (let dx = -r; dx <= r; dx++) { const c = this.chunks.get((cx + dx) + ',' + (cz + dz)); if (c && c.water) return true; }
+    return false;
   }
 
   meshedCount(cx, cz, r) {

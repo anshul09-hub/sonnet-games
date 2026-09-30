@@ -71,3 +71,7 @@ input[type=range] { flex: 1; accent-color: #8ee06a; }
 #invgrid .cell canvas { width: 100%; height: 100%; image-rendering: pixelated; }
 #invgrid .cell span { position: absolute; left: 0; right: 0; bottom: -1px; font-size: 9px; text-align: center; color: #fff; text-shadow: 1px 1px 0 #000; background: rgba(0,0,0,.35); }
 @media (max-width: 640px) { .keys { display: none; } }
+
+#flychip { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); padding: 5px 14px; font-size: 13px; font-weight: 700; letter-spacing: 3px; color: #dff4ff;
+  background: rgba(10, 30, 50, .55); border: 2px solid #5fc3ff; box-shadow: 0 0 18px rgba(95, 195, 255, .55); text-shadow: 0 0 8px #5fc3ff; }
+#flychip small { font-weight: 400; letter-spacing: 1px; opacity: .75; margin-left: 8px; font-size: 11px; }

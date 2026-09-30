@@ -57,6 +57,7 @@ export class Dynamics {
   constructor(G, RAPIER) {
     this.G = G; this.world = G.world; this.R = RAPIER;
     this.inst = new BlockInstances(G.scene);
+    if (G.shadows) G.shadows.addInstanced(this.inst.mesh);
     this.falling = []; this.primed = []; this.debris = [];
     this.fallQ = []; this.fallSet = new Set();
     this.noFill = false;

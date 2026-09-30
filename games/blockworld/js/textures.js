@@ -29,7 +29,7 @@ export function buildAtlas() {
   });
 
   // grass top
-  noisy(T.GRASS_TOP, [100, 172, 54], 0.1, 0.12);
+  noisy(T.GRASS_TOP, [98, 152, 62], 0.1, 0.12);
   // dirt
   noisy(T.DIRT, [134, 96, 66], 0.09, 0.12);
   for (let i = 0; i < 9; i++) { const x = rnd() * 15 | 0, y = rnd() * 15 | 0; put(T.DIRT, x, y, [168, 128, 96]); put(T.DIRT, x + 1, y, [110, 76, 50]); }

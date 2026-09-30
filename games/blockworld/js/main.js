@@ -4,6 +4,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 
 import { B, DEFS, PLACEABLE, SOLID, PLANT, WATERB, SEA, CS, H } from './blocks.js';
 import { buildAtlas, blockIcon, makeCrackTextures } from './textures.js';
@@ -15,6 +16,10 @@ import { GameAudio } from './audio.js';
 import { Particles } from './particles.js';
 import { SheepManager } from './sheep.js';
 import { Dynamics } from './dynamics.js';
+import { Shadows } from './shadows.js';
+import { Reflection } from './reflection.js';
+import { Avatar } from './avatar.js';
+import { GradeShader } from './post.js';
 import { getTerrain, BIOME_NAMES } from './gen.js';
 
 const $ = (id) => document.getElementById(id);
@@ -26,10 +31,11 @@ const store = {
 };
 const SAVE = 'blockworld.v1.';
 
+// shadows: [cascades, map size, near half-extent, far half-extent]   reflect: water mirror resolution scale
 const GFX = {
-  low: { view: 8, pr: 0.8, ao: false, bloom: false, clouds: 1, msaa: 0 },
-  medium: { view: 10, pr: 1, ao: true, bloom: true, clouds: 3, msaa: 0 },
-  high: { view: 12, pr: Math.min(window.devicePixelRatio || 1, 1.5), ao: true, bloom: true, clouds: 3, msaa: 4 },
+  low: { view: 8, pr: 0.8, ao: false, bloom: false, post: false, bump: false, clouds: 1, msaa: 0, shadows: [0, 0, 0, 0], reflect: 0 },
+  medium: { view: 10, pr: 1, ao: true, bloom: true, post: true, bump: true, clouds: 3, msaa: 2, shadows: [1, 2048, 56, 0], reflect: 0.5 },
+  high: { view: 12, pr: Math.min(window.devicePixelRatio || 1, 1.5), ao: true, bloom: true, post: true, bump: true, clouds: 3, msaa: 4, shadows: [2, 2048, 26, 110], reflect: 0.7 },
 };
 
 // ---------------------------------------------------------------- renderer
@@ -55,9 +61,13 @@ const audio = new GameAudio();
 const player = new Player(world);
 const bits = new Particles(scene, world, 3000, false);
 const fx = new Particles(scene, world, 2500, true);
-const sheep = new SheepManager(scene, world, audio);
+const shadows = new Shadows(renderer, scene);
+world.shadowHook = shadows;
+const sheep = new SheepManager(scene, world, audio, shadows);
+const avatar = new Avatar(scene, shadows);
+avatar.group.visible = false;
 
-const G = { scene, camera, world, sky, audio, player, sheep, bits, fx, shake: 0, flash: 0, bloomKick: 0 };
+const G = { scene, camera, world, sky, audio, player, sheep, bits, fx, shadows, shake: 0, flash: 0, bloomKick: 0 };
 let dyn = null;
 
 // ---------------------------------------------------------------- state
@@ -75,7 +85,8 @@ let debugOn = false;
 let hasLocked = false;
 const keys = { f: 0, b: 0, l: 0, r: 0, jump: 0, sprint: 0, down: 0 };
 const mouse = { l: false, r: false };
-let composer = null, bloomPass = null, bloomStrength = 0;
+let composer = null, bloomPass = null, gradePass = null, bloomStrength = 0;
+let flyFx = 0, flyBlur = 0, lastSpace = 0, waterCheck = 0, haveWater = false;
 let graphics = GFX[gfxName];
 let fpsAvg = 60, fpsFrames = 0, fpsT = 0, frameMs = 0;
 let lastSave = 0;
@@ -110,22 +121,27 @@ function applyGraphics(name, quiet) {
   world.useAO = graphics.ao;
   if (aoChanged) world.remeshAll();
   sky.clouds.forEach((c, i) => { c.visible = i < graphics.clouds || (graphics.clouds === 1 && i === 2); });
-  if (composer) { composer.dispose && composer.dispose(); composer = null; bloomPass = null; }
+  if (composer) { composer.dispose && composer.dispose(); composer = null; bloomPass = null; gradePass = null; }
+  shadows.configure(...graphics.shadows);
+  if (typeof reflection !== 'undefined') reflection.configure(graphics.reflect > 0, graphics.reflect);
+  U.uBump.value = graphics.bump ? 1 : 0;
   $('gfx').value = name; $('gfx2').value = name;
   resize();
   if (!quiet) toast('Graphics: ' + name[0].toUpperCase() + name.slice(1) + ' (view distance ' + world.viewDist + ' chunks)');
 }
 
 function ensureComposer() {
-  if (composer || !graphics.bloom) return;
+  if (composer || !graphics.post) return;
   const size = renderer.getDrawingBufferSize(new THREE.Vector2());
   const rt = new THREE.WebGLRenderTarget(size.x, size.y, { type: THREE.HalfFloatType, samples: graphics.msaa });
   composer = new EffectComposer(renderer, rt);
   composer.setPixelRatio(1);
   composer.setSize(size.x, size.y);
   composer.addPass(new RenderPass(scene, camera));
-  bloomPass = new UnrealBloomPass(new THREE.Vector2(size.x, size.y), 0, 0.6, 1.0);
+  bloomPass = new UnrealBloomPass(new THREE.Vector2(size.x, size.y), 0.2, 0.55, 0.92);
   composer.addPass(bloomPass);
+  gradePass = new ShaderPass(GradeShader);
+  composer.addPass(gradePass);
   composer.addPass(new OutputPass());
 }
 
@@ -134,7 +150,7 @@ const heldGeo = makeCubeGeometry();
 const heldTiles = new THREE.InstancedBufferAttribute(new Float32Array(3), 3);
 heldGeo.setAttribute('aTiles', heldTiles);
 heldGeo.setAttribute('aFlash', new THREE.InstancedBufferAttribute(new Float32Array(1), 1));
-const heldMat = makeInstMaterial(); heldMat.depthTest = false;
+const heldMat = makeInstMaterial(true); heldMat.depthTest = false;
 const held = new THREE.InstancedMesh(heldGeo, heldMat, 1);
 held.frustumCulled = false; held.renderOrder = 100;
 camera.add(held);
@@ -150,6 +166,9 @@ outline.visible = false; scene.add(outline);
 const crackTex = makeCrackTextures();
 const crack = new THREE.Mesh(new THREE.BoxGeometry(1.008, 1.008, 1.008), new THREE.MeshBasicMaterial({ map: crackTex[0], transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, fog: false }));
 crack.visible = false; crack.renderOrder = 3; scene.add(crack);
+
+const reflection = new Reflection(renderer, scene, camera, sky, [held, outline, crack]);   // the player's body (layer 1) is only seen by the mirror camera
+reflection.configure(graphics.reflect > 0, graphics.reflect);
 
 // ---------------------------------------------------------------- hotbar / inventory UI
 const icons = {};
@@ -276,6 +295,7 @@ function startGame() {
   buildHotbar(); select(sel);
   world.update(player.e.x, player.e.z, 0);
   $('title').classList.add('hidden'); $('hud').classList.remove('hidden');
+  $('flychip').classList.toggle('hidden', !player.flying);
   state = 'playing'; hasLocked = false;
   requestLock();
   saveGame(true);
@@ -338,6 +358,18 @@ document.addEventListener('mouseup', (e) => { if (e.button === 0) { mouse.l = fa
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 window.addEventListener('wheel', (e) => { if (state === 'playing' && !invOpen) { select(sel + (e.deltaY > 0 ? 1 : -1)); } }, { passive: true });
 
+function setFlying(on) {
+  if (player.flying === on) return;
+  player.flying = on;
+  $('flychip').classList.toggle('hidden', !on);
+  if (on) {
+    player.vel.y = Math.max(player.vel.y, 7.5); player.onGround = false;
+    fx.burst(player.e.x, player.e.y + 0.2, player.e.z, 46, { colors: [[0.55, 0.5, 0.42], [0.8, 0.8, 0.85], [0.4, 0.38, 0.34]], speed: 5.5, up: 0.25, life: 0.9, size: 1.5, alpha: 0.6, grav: -0.5, drag: 2.2, grow: 1.2, spread: 0.6 });
+    bits.blockBits(Math.floor(player.e.x), Math.floor(player.e.y) - 1, Math.floor(player.e.z), DEFS[B.GRASS].top, 10, 1.2);
+    audio.whoosh && audio.whoosh(1);
+    toast('Flying. Double-tap Space to land · Space up · C down · Shift = fast', 3600);
+  } else { audio.whoosh && audio.whoosh(0.5); toast('Landing'); }
+}
 const KEYMAP = { KeyW: 'f', KeyS: 'b', KeyA: 'l', KeyD: 'r', ArrowUp: 'f', ArrowDown: 'b', ArrowLeft: 'l', ArrowRight: 'r', Space: 'jump', ShiftLeft: 'sprint', ShiftRight: 'sprint', KeyC: 'down', ControlLeft: 'down' };
 window.addEventListener('keydown', (e) => {
   if (e.target && e.target.tagName === 'INPUT' && e.target.type === 'text') { if (e.code === 'Enter' && state === 'title') startIfReady(); return; }
@@ -349,9 +381,14 @@ window.addEventListener('keydown', (e) => {
   if (e.repeat) return;
   if (e.code >= 'Digit1' && e.code <= 'Digit9') select(parseInt(e.code.slice(5)) - 1);
   else if (e.code === 'KeyE') setInventory(!invOpen);
-  else if (e.code === 'KeyF') { player.flying = !player.flying; toast(player.flying ? 'Flying on (Space up, C down)' : 'Flying off'); }
+  else if (e.code === 'KeyF') setFlying(!player.flying);
   else if (e.code === 'F3') { debugOn = !debugOn; $('debug').classList.toggle('hidden', !debugOn); e.preventDefault(); }
   else if (e.code === 'KeyT') { sky.setTime(sky.time + 0.125); toast('Time: ' + String(Math.floor(sky.hours)).padStart(2, '0') + ':00'); }
+  if (e.code === 'Space') {
+    // double-tap Space: take off / land
+    const t = performance.now();
+    if (t - lastSpace < 320) { setFlying(!player.flying); lastSpace = 0; } else lastSpace = t;
+  }
   if (e.code === 'Space' || e.code === 'Tab') e.preventDefault();
 });
 window.addEventListener('keyup', (e) => { if (KEYMAP[e.code]) keys[KEYMAP[e.code]] = 0; });
@@ -458,7 +495,7 @@ function stepSim(dt) {
   world.update(player.e.x, player.e.z, 3);
 }
 let last = performance.now();
-const _cam = new THREE.Vector3();
+const _cam = new THREE.Vector3(), _feet = new THREE.Vector3(), _fwd = new THREE.Vector3();
 let camFov = 72;
 let bobT = 0;
 function frame(now) {
@@ -501,7 +538,6 @@ function frame(now) {
   }
 
   // lighting, fog, water tint
-  sheep.lighting(sky, camera);
   const R = world.viewDist;
   const uw = state !== 'title' && player.headInWater;
   const fogFar = uw ? 24 : R * CS - 5, fogNear = uw ? 1 : R * CS * 0.52;
@@ -511,20 +547,58 @@ function frame(now) {
   renderer.setClearColor(U.uFogColor.value);
   $('underwater').style.opacity = uw ? 1 : 0;
 
+  // ---- flight feel: FOV, streaks, post-processing intensity ----
+  const spd = state === 'playing' ? player.vel.length() : 0;
+  flyFx += ((state === 'playing' && player.flying ? 1 : 0) - flyFx) * Math.min(1, dt * 3);
+  const spdN = Math.min(1, spd / 30);
+  flyBlur += ((player.flying && state === 'playing' ? 0.012 + 0.06 * spdN : (player.sprinting ? 0.012 : 0)) - flyBlur) * Math.min(1, dt * 5);
+  if (state === 'playing' && player.flying && spd > 6 && simulate) {
+    const n = Math.min(6, 2 + Math.floor(spd * dt * 0.4));
+    const fx0 = -Math.sin(player.yaw), fz0 = -Math.cos(player.yaw);
+    for (let i = 0; i < n; i++) {
+      const dist = 6 + Math.random() * 26, a = Math.random() * 6.283, rr = 2 + Math.random() * 9;
+      fx.add(camera.position.x + fx0 * dist + Math.cos(a) * rr, camera.position.y + (Math.random() - 0.5) * 9, camera.position.z + fz0 * dist + Math.sin(a) * rr,
+        0, 0, 0, 0.7, 0.16 + Math.random() * 0.12, -2, 0, 0, 1.6, 1.6, 1.8, 0.45, 0, 0.3, 0);
+    }
+  }
+
+  // ---- lighting quality, shadows, water mirror ----
+  const usePost = graphics.post;
+  U.uLightScale.value = usePost ? 1.0 : 0.62;
+  avatar.group.visible = state !== 'title';
+  if (state !== 'title') avatar.update(player, dt);
+  if (shadows.enabled) {
+    const fpos = state === 'title' ? camera.position : _feet.set(player.e.x, player.e.y + 1, player.e.z);
+    _fwd.set(-Math.sin(state === 'title' ? fly.heading : player.yaw), 0, -Math.cos(state === 'title' ? fly.heading : player.yaw));
+    shadows.update(fpos, _fwd);
+  }
+  if (graphics.reflect > 0 && !uw) {
+    if (--waterCheck <= 0) { waterCheck = 20; haveWater = world.waterNear(camera.position.x, camera.position.z, Math.min(R, 8)); }
+    if (haveWater) reflection.render(fogFar, mats.trans); else U.uReflOn.value = 0;
+  } else U.uReflOn.value = 0;
+
   // explosion flash + bloom
   G.shake *= Math.exp(-3.2 * dt);
   G.flash *= Math.exp(-4.5 * dt);
   G.bloomKick *= Math.exp(-2.6 * dt);
   $('flash').style.opacity = Math.min(0.5, G.flash * 0.5).toFixed(3);
   bloomStrength = graphics.bloom ? G.bloomKick * 0.85 : 0;
+  if (state === 'title' || !graphics.post) { /* keep default */ }
 
   audio.setListener(camera.position.x, camera.position.y, camera.position.z, state === 'title' ? fly.heading : player.yaw);
   if (audio.ctx && state !== 'title') audio.setWind(Math.min(1, Math.max(0, (player.e.y - SEA) / 60)) * 0.8 + (player.sprinting ? 0.2 : 0));
 
   const tr = performance.now();
-  if (bloomStrength > 0.02) {
+  if (usePost) {
     ensureComposer();
-    if (bloomPass) { bloomPass.strength = bloomStrength; composer.render(); } else renderer.render(scene, camera);
+    bloomPass.strength = 0.2 + bloomStrength + flyFx * 0.14 + sky.dusk * 0.12;
+    const gu = gradePass.uniforms;
+    gu.uTime.value = U.uTime.value % 100; gu.uSpeed.value = flyBlur;
+    gu.uVig.value = 0.52 + flyFx * 0.16 + sky.night * 0.1; gu.uAberr.value = 0.0012 + flyFx * 0.0035 + G.bloomKick * 0.004;
+    gu.uMood.value = 1;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.66 + sky.night * 0.3;
+    composer.render();
+    renderer.toneMapping = THREE.NoToneMapping;
   } else renderer.render(scene, camera);
   prof.render += (performance.now() - tr - prof.render) * 0.05;
 
@@ -568,9 +642,10 @@ function placeCameraAtPlayer(dt) {
   camera.position.set(_cam.x + (Math.random() - 0.5) * s, _cam.y + by + (Math.random() - 0.5) * s, _cam.z + (Math.random() - 0.5) * s);
   const sx = Math.sin(player.yaw), cx = Math.cos(player.yaw);
   camera.position.x += cx * bx; camera.position.z += -sx * bx;
-  const roll = -(keys.r - keys.l) * 0.012 + (Math.random() - 0.5) * G.shake * 0.05;
+  const latV = player.vel.x * Math.cos(player.yaw) - player.vel.z * Math.sin(player.yaw);
+  const roll = -(keys.r - keys.l) * 0.012 - (player.flying ? Math.max(-0.16, Math.min(0.16, latV * 0.006)) : 0) + (Math.random() - 0.5) * G.shake * 0.05;
   camera.rotation.set(player.pitch + (Math.random() - 0.5) * G.shake * 0.04, player.yaw, roll, 'YXZ');
-  const targetFov = 72 + (player.sprinting && speed > 4 ? 9 : 0) + (player.flying && keys.sprint ? 12 : 0);
+  const targetFov = 72 + (player.sprinting && speed > 4 ? 9 : 0) + (player.flying ? 5 + 20 * Math.min(1, player.vel.length() / 34) : 0);
   camFov += (targetFov - camFov) * Math.min(1, dt * 8);
   if (Math.abs(camera.fov - camFov) > 0.01) { camera.fov = camFov; camera.updateProjectionMatrix(); bits.setScale(window.innerHeight * graphics.pr, camFov * Math.PI / 180); fx.setScale(window.innerHeight * graphics.pr, camFov * Math.PI / 180); }
   // held block

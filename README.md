@@ -24,11 +24,13 @@ Run it from any static web server (for example `python3 -m http.server` in the r
 | `1`–`9` / mouse wheel | Select a hotbar slot |
 | Middle click | Pick the block you are looking at |
 | `E` | Open the block palette (click a block to put it in the selected slot) |
-| `F` | Toggle flying (`Space` up, `C` down, `Shift` faster) |
+| `Space` twice (double-tap) or `F` | Take off / land. While flying: `Space` up, `C` down, `Shift` much faster (speed blur, wider view) |
 | `T` | Skip ahead in time of day |
 | `M` | Mute / unmute |
 | `F3` | Debug overlay (fps, chunks, physics counts) |
 | `Esc` | Pause menu (volume, graphics quality, save & quit) |
+
+Graphics: **Medium** and **High** add real sun and moon shadows (including your own body), a planar water reflection, bump-mapped pixel textures, bloom, and a filmic, moody colour grade. **Low** keeps the lighting but skips shadows, reflections and post-processing.
 
 Title screen: type a seed (leave it empty for a random world), pick **Graphics** Low / Medium / High, and press Play. Any world you change is saved automatically per seed and offered as **Continue World** next time.
 

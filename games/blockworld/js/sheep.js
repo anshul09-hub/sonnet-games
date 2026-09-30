@@ -3,12 +3,13 @@ import * as THREE from 'three';
 import { moveBox } from './collide.js';
 import { B, SOLID, WATERB } from './blocks.js';
 import { makeSheepTextures } from './textures.js';
+import { makeEntityMaterial } from './shaders.js';
 
 const WOOL = [[1, 1, 1, 0.66], [0.78, 0.78, 0.78, 0.14], [0.6, 0.45, 0.32, 0.1], [0.28, 0.27, 0.3, 0.05], [1.0, 0.72, 0.82, 0.05]];
 
 export class SheepManager {
-  constructor(scene, world, audio) {
-    this.scene = scene; this.world = world; this.audio = audio;
+  constructor(scene, world, audio, shadows) {
+    this.scene = scene; this.world = world; this.audio = audio; this.shadows = shadows;
     this.list = [];
     this.tex = makeSheepTextures();
     this.geo = {
@@ -17,26 +18,12 @@ export class SheepManager {
       tuft: new THREE.BoxGeometry(0.56, 0.16, 0.56),
       leg: new THREE.BoxGeometry(0.2, 0.5, 0.2),
     };
-    const lam = (map, color) => new THREE.MeshLambertMaterial({ map, color });
+    const lam = (map, color) => makeEntityMaterial(map, new THREE.Color(color));
     this.skinMat = lam(this.tex.skin, 0xffffff);
     this.faceMats = [this.skinMat, this.skinMat, this.skinMat, this.skinMat, this.skinMat, lam(this.tex.face, 0xffffff)];
     this.legMat = lam(this.tex.skin, 0xb9a48f);
     this.woolMats = WOOL.map(w => lam(this.tex.wool, new THREE.Color(w[0], w[1], w[2])));
     this.spawnT = 0; this.target = 8;
-    this.ambient = new THREE.AmbientLight(0xffffff, 1.7); scene.add(this.ambient);
-    this.sun = new THREE.DirectionalLight(0xffffff, 1.5); this.sun.position.set(0, 1, 0); scene.add(this.sun); scene.add(this.sun.target);
-  }
-
-  lighting(sky, camera) {
-    const c = sky.lightColor;
-    this.ambient.color.copy(c).multiplyScalar(0.62).addScalar(0.06);
-    this.ambient.intensity = Math.PI;
-    const d = sky.sunDir;
-    const up = d.y > -0.05 ? 1 : -1;
-    this.sun.position.copy(camera.position).addScaledVector(d, 50 * up);
-    this.sun.target.position.copy(camera.position);
-    this.sun.color.copy(c).multiplyScalar(sky.dayF * 0.85 + 0.06);
-    this.sun.intensity = Math.PI * 0.75;
   }
 
   spawn(x, y, z) {
@@ -53,6 +40,7 @@ export class SheepManager {
       const leg = new THREE.Mesh(this.geo.leg, this.legMat); leg.position.y = -0.25; pv.add(leg); g.add(pv); legs.push(pv);
     }
     this.scene.add(g);
+    if (this.shadows) this.shadows.addTree(g);
     const s = { g, head: headPivot, legs, e: { x, y, z, hw: 0.42, h: 1.1 }, vy: 0, yaw: Math.random() * 6.28, targetYaw: 0, state: 'idle', timer: 1 + Math.random() * 3,
       kx: 0, kz: 0, phase: Math.random() * 6, graze: 0, grazeT: 0, speed: 0.85 + Math.random() * 0.4, hop: 0, inWater: false, ground: false, seed: Math.random() * 100 };
     s.targetYaw = s.yaw;
@@ -60,7 +48,8 @@ export class SheepManager {
     return s;
   }
 
-  clear() { for (const s of this.list) this.scene.remove(s.g); this.list.length = 0; }
+  remove(s) { if (this.shadows) this.shadows.removeTree(s.g); this.scene.remove(s.g); }
+  clear() { for (const s of this.list) this.remove(s); this.list.length = 0; }
 
   trySpawnNear(px, pz, minR, maxR, group) {
     const w = this.world;
@@ -100,7 +89,7 @@ export class SheepManager {
     for (let i = this.list.length - 1; i >= 0; i--) {
       const s = this.list[i], e = s.e;
       const d = Math.hypot(e.x - px, e.z - pz);
-      if (d > 90 || e.y < -10) { this.scene.remove(s.g); this.list.splice(i, 1); continue; }
+      if (d > 90 || e.y < -10) { this.remove(s); this.list.splice(i, 1); continue; }
       if (!w.hasData(Math.floor(e.x), Math.floor(e.z))) { continue; }
       this.think(s, dt, px, pz);
       // movement

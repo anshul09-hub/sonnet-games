@@ -5,7 +5,7 @@ import { hash3 } from './noise.js';
 
 const PW = CS + 2;
 const PP = PW * PW;
-const AO_LEVELS = [0.46, 0.64, 0.82, 1.0];
+const AO_LEVELS = [0.4, 0.6, 0.8, 1.0];
 const EPS = 0.004;
 
 const TILE_TOP = new Uint8Array(256), TILE_BOT = new Uint8Array(256), TILE_SIDE = new Uint8Array(256), TINT = new Uint8Array(256);
@@ -13,12 +13,12 @@ for (const d of DEFS) { if (!d) continue; TILE_TOP[d.id] = d.top; TILE_BOT[d.id]
 
 // dir, corners BL BR TR TL, tangent1 (BL->BR), tangent2 (BL->TL), shade, tile selector
 const FACES = [
-  { d: [1, 0, 0], c: [[1, 0, 1], [1, 0, 0], [1, 1, 0], [1, 1, 1]], t1: [0, 0, -1], t2: [0, 1, 0], shade: 0.72, sel: 2 },
-  { d: [-1, 0, 0], c: [[0, 0, 0], [0, 0, 1], [0, 1, 1], [0, 1, 0]], t1: [0, 0, 1], t2: [0, 1, 0], shade: 0.72, sel: 2 },
+  { d: [1, 0, 0], c: [[1, 0, 1], [1, 0, 0], [1, 1, 0], [1, 1, 1]], t1: [0, 0, -1], t2: [0, 1, 0], shade: 0.9, sel: 2 },
+  { d: [-1, 0, 0], c: [[0, 0, 0], [0, 0, 1], [0, 1, 1], [0, 1, 0]], t1: [0, 0, 1], t2: [0, 1, 0], shade: 0.9, sel: 2 },
   { d: [0, 1, 0], c: [[0, 1, 1], [1, 1, 1], [1, 1, 0], [0, 1, 0]], t1: [1, 0, 0], t2: [0, 0, -1], shade: 1.0, sel: 0 },
-  { d: [0, -1, 0], c: [[0, 0, 0], [1, 0, 0], [1, 0, 1], [0, 0, 1]], t1: [1, 0, 0], t2: [0, 0, 1], shade: 0.5, sel: 1 },
-  { d: [0, 0, 1], c: [[0, 0, 1], [1, 0, 1], [1, 1, 1], [0, 1, 1]], t1: [1, 0, 0], t2: [0, 1, 0], shade: 0.86, sel: 2 },
-  { d: [0, 0, -1], c: [[1, 0, 0], [0, 0, 0], [0, 1, 0], [1, 1, 0]], t1: [-1, 0, 0], t2: [0, 1, 0], shade: 0.86, sel: 2 },
+  { d: [0, -1, 0], c: [[0, 0, 0], [1, 0, 0], [1, 0, 1], [0, 0, 1]], t1: [1, 0, 0], t2: [0, 0, 1], shade: 0.7, sel: 1 },
+  { d: [0, 0, 1], c: [[0, 0, 1], [1, 0, 1], [1, 1, 1], [0, 1, 1]], t1: [1, 0, 0], t2: [0, 1, 0], shade: 0.96, sel: 2 },
+  { d: [0, 0, -1], c: [[1, 0, 0], [0, 0, 0], [0, 1, 0], [1, 1, 0]], t1: [-1, 0, 0], t2: [0, 1, 0], shade: 0.96, sel: 2 },
 ];
 const SX = [-1, 1, 1, -1], SY = [-1, -1, 1, 1];
 
@@ -80,6 +80,7 @@ function tintFor(terrain, wx, wz, lx, lz, out) {
 
 export function meshChunk(cx, cz, chunks, terrain, useAO) {
   ob.n = ob.ni = 0; tb.n = tb.ni = 0;
+  let waterFaces = 0;
   tintHas.fill(0);
   // ---- padded copy of the 3x3 neighbourhood (only 1 block border needed) ----
   pad.fill(0);
@@ -161,7 +162,7 @@ export function meshChunk(cx, cz, chunks, terrain, useAO) {
           let sh = 0.92, tr = 1, tg = 1, tb2 = 1;
           if (TINT[b]) { tintFor(terrain, wx0 + x, wz0 + z, x, z, tint); tr = tint[0]; tg = tint[1]; tb2 = tint[2]; }
           const sky = skyAt(px, y, pz);
-          const sk = Math.round(sky * 63);
+          const sk = Math.round(sky * 31);
           const jx = (hash3(wx0 + x, y, wz0 + z, seed) - 0.5) * 0.3, jz = (hash3(wx0 + x, y + 3, wz0 + z, seed + 1) - 0.5) * 0.3;
           const r = Math.round(255 * sh * tr), g = Math.round(255 * sh * tg), bl = Math.round(255 * sh * tb2);
           const X = (x + 0.5 + jx) * 16, Z = (z + 0.5 + jz) * 16, Y = y * 16;
@@ -171,10 +172,10 @@ export function meshChunk(cx, cz, chunks, terrain, useAO) {
             const [ax, az, bx, bz] = k === 0 ? [-d, -d, d, d] : [d, -d, -d, d];
             for (let side = 0; side < 2; side++) {
               const s0x = side ? bx : ax, s0z = side ? bz : az, s1x = side ? ax : bx, s1z = side ? az : bz;
-              ob.vert(X + s0x, Y, Z + s0z, U0, V1, r, g, bl, sk);
-              ob.vert(X + s1x, Y, Z + s1z, U1, V1, r, g, bl, sk);
-              ob.vert(X + s1x, Y + hgt, Z + s1z, U1, V0, r, g, bl, sk + 64);
-              ob.vert(X + s0x, Y + hgt, Z + s0z, U0, V0, r, g, bl, sk + 64);
+              ob.vert(X + s0x, Y, Z + s0z, U0, V1, r, g, bl, sk + 128);
+              ob.vert(X + s1x, Y, Z + s1z, U1, V1, r, g, bl, sk + 128);
+              ob.vert(X + s1x, Y + hgt, Z + s1z, U1, V0, r, g, bl, sk + 32);
+              ob.vert(X + s0x, Y + hgt, Z + s0z, U0, V0, r, g, bl, sk + 32);
               ob.quad(false);
             }
           }
@@ -232,15 +233,16 @@ export function meshChunk(cx, cz, chunks, terrain, useAO) {
               const u = (k === 0 || k === 3) ? U0 : U1, v = (k < 2) ? V1 : V0;
               buf.vert((x + cc[0]) * 16, (y + cc[1]) * 16, (z + cc[2]) * 16, u, v,
                 Math.min(255, (255 * br * tr) | 0), Math.min(255, (255 * br * tg) | 0), Math.min(255, (255 * br * tbl) | 0),
-                Math.round(skyV[k] * 63));
+                Math.round(skyV[k] * 31));
             }
             buf.quad(flip);
           } else {
             // glass / ice / water: flat lighting, no AO
-            const sky = Math.round(skyAt(nx, ny, nz) * 63);
+            const sky = Math.round(skyAt(nx, ny, nz) * 31);
             let top = 16;
             let waterTop = false;
             if (isWater) {
+              waterFaces++;
               const above = at(px, y + 1, pz);
               if (!WATERB[above]) { top = 14; waterTop = true; }
             }
@@ -250,7 +252,7 @@ export function meshChunk(cx, cz, chunks, terrain, useAO) {
               const u = (k === 0 || k === 3) ? U0 : U1, v = (k < 2) ? V1 : V0;
               let yy = (y + cc[1]) * 16, flag = 0;
               if (isWater) { if (cc[1] === 1) { yy = y * 16 + top; flag = waterTop ? 2 : 3; } else flag = 3; }
-              buf.vert((x + cc[0]) * 16, yy, (z + cc[2]) * 16, u, v, br, br, br, sky + flag * 64);
+              buf.vert((x + cc[0]) * 16, yy, (z + cc[2]) * 16, u, v, br, br, br, sky + flag * 32);
             }
             buf.quad(false);
           }
@@ -267,5 +269,5 @@ export function meshChunk(cx, cz, chunks, terrain, useAO) {
   const idx = n < 65536 ? new Uint16Array(ob.ni + tb.ni) : new Uint32Array(ob.ni + tb.ni);
   idx.set(ob.idx.subarray(0, ob.ni));
   for (let i = 0; i < tb.ni; i++) idx[ob.ni + i] = tb.idx[i] + on;
-  return { cx, cz, maxY, n, pos, uv, col, idx, oCount: ob.ni, tCount: tb.ni };
+  return { cx, cz, maxY, n, pos, uv, col, idx, oCount: ob.ni, tCount: tb.ni, water: waterFaces };
 }

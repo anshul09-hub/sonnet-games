@@ -56,7 +56,7 @@ export class Player {
     if (this.inWater && !wasWater && v.y < -3) events.splash && events.splash(-v.y);
     this.sprinting = k.sprint && mz > 0 && !this.headInWater;
 
-    let speed = this.flying ? (k.sprint ? 22 : 11) : this.inWater ? 2.9 : this.sprinting ? 6.4 : 4.5;
+    let speed = this.flying ? (k.sprint ? 36 : 14) : this.inWater ? 2.9 : this.sprinting ? 6.4 : 4.5;
     const tx = (fx * mz + rx * mx) * speed, tz = (fz * mz + rz * mx) * speed;
     const acc = this.flying ? 9 : this.onGround ? 14 : this.inWater ? 5 : 3.2;
     const a = 1 - Math.exp(-acc * dt);
