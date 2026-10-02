@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Apple Catcher</title>
+<style>
+  :root { --sky: #bfe6ff; --grass: #5cb85c; --ink: #1d2b36; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--sky); font-family: system-ui, sans-serif; color: var(--ink); }
+  body { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px; }
+  h1 { margin: 0 0 8px; font-size: 1.6rem; }
+  #hud { display: flex; gap: 24px; font-weight: 600; margin-bottom: 8px; }
+  canvas { width: 100%; max-width: 480px; aspect-ratio: 3 / 4; background: linear-gradient(var(--sky) 80%, var(--grass) 80%); border-radius: 12px; box-shadow: 0 6px 20px rgba(0,0,0,.15); touch-action: none; }
+  p { margin: 8px 0 0; font-size: .9rem; opacity: .8; text-align: center; }
+</style>
+</head>
+<body>
+<h1>🍎 Apple Catcher</h1>
+<div id="hud"><span>Score: <b id="score">0</b></span><span>Lives: <b id="lives">3</b></span><span>Best: <b id="best">0</b></span></div>
+<canvas id="game" width="480" height="640"></canvas>
+<p>Move with ← → / A D, mouse, or touch. Catch red apples, avoid rotten brown ones. Press Space or tap to start.</p>
+
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height, GROUND = H * 0.8;
+const $ = id => document.getElementById(id);
+
+let best = 0;
+try { best = +localStorage.getItem('apple-best') || 0; } catch {}
+$('best').textContent = best;
+
+const basket = { x: W / 2, w: 90, h: 36, speed: 420 };
+let apples, score, lives, spawnTimer, running, over, last;
+const keys = {};
+
+function reset() {
+  apples = []; score = 0; lives = 3; spawnTimer = 0;
+  running = true; over = false; last = performance.now();
+  updateHud();
+}
+
+function updateHud() {
+  $('score').textContent = score;
+  $('lives').textContent = lives;
+  $('best').textContent = best;
+}
+
+function spawnApple() {
+  const rotten = Math.random() < Math.min(0.15 + score * 0.005, 0.35);
+  apples.push({
+    x: 20 + Math.random() * (W - 40),
+    y: -20,
+    r: 16,
+    vy: 140 + Math.random() * 60 + score * 4,
+    rotten,
+  });
+}
+
+function update(dt) {
+  if (keys.ArrowLeft || keys.a) basket.x -= basket.speed * dt;
+  if (keys.ArrowRight || keys.d) basket.x += basket.speed * dt;
+  basket.x = Math.max(basket.w / 2, Math.min(W - basket.w / 2, basket.x));
+
+  spawnTimer -= dt;
+  if (spawnTimer <= 0) {
+    spawnApple();
+    spawnTimer = Math.max(0.35, 1.1 - score * 0.02);
+  }
+
+  const top = GROUND - basket.h;
+  for (let i = apples.length - 1; i >= 0; i--) {
+    const a = apples[i];
+    a.y += a.vy * dt;
+    const caught = a.y + a.r >= top && a.y < GROUND && Math.abs(a.x - basket.x) < basket.w / 2 + a.r / 2;
+    if (caught) {
+      apples.splice(i, 1);
+      if (a.rotten) loseLife(); else score++;
+      updateHud();
+    } else if (a.y - a.r > GROUND) {
+      apples.splice(i, 1);
+      if (!a.rotten) { loseLife(); updateHud(); }
+    }
+  }
+}
+
+function loseLife() {
+  lives--;
+  if (lives <= 0) {
+    running = false; over = true;
+    if (score > best) {
+      best = score;
+      try { localStorage.setItem('apple-best', best); } catch {}
+    }
+  }
+}
+
+function drawApple(a) {
+  ctx.fillStyle = a.rotten ? '#7a5230' : '#e0322b';
+  ctx.beginPath(); ctx.arc(a.x, a.y, a.r, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,.35)';
+  ctx.beginPath(); ctx.arc(a.x - 5, a.y - 5, 4, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#4a2c12'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(a.x, a.y - a.r); ctx.lineTo(a.x + 2, a.y - a.r - 8); ctx.stroke();
+  ctx.fillStyle = '#3c9a3c';
+  ctx.beginPath(); ctx.ellipse(a.x + 8, a.y - a.r - 5, 7, 3.5, -0.5, 0, Math.PI * 2); ctx.fill();
+}
+
+function drawBasket() {
+  const x = basket.x - basket.w / 2, y = GROUND - basket.h;
+  ctx.fillStyle = '#a0682d';
+  ctx.beginPath();
+  ctx.moveTo(x, y); ctx.lineTo(x + basket.w, y);
+  ctx.lineTo(x + basket.w - 10, GROUND); ctx.lineTo(x + 10, GROUND);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = '#6e4519'; ctx.lineWidth = 2;
+  for (let i = 1; i < 3; i++) {
+    ctx.beginPath(); ctx.moveTo(x + 4, y + i * basket.h / 3); ctx.lineTo(x + basket.w - 4, y + i * basket.h / 3); ctx.stroke();
+  }
+}
+
+function drawCenter(lines) {
+  ctx.fillStyle = 'rgba(0,0,0,.45)'; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+  lines.forEach(([text, size], i) => {
+    ctx.font = `bold ${size}px system-ui, sans-serif`;
+    ctx.fillText(text, W / 2, H / 2 - 30 + i * 44);
+  });
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  apples.forEach(drawApple);
+  drawBasket();
+  if (over) drawCenter([['Game Over', 40], [`Score: ${score}`, 26], ['Space / tap to play again', 18]]);
+  else if (!running) drawCenter([['Apple Catcher', 40], ['Space / tap to start', 20]]);
+}
+
+function loop(now) {
+  const dt = Math.min((now - last) / 1000, 0.05);
+  last = now;
+  if (running) update(dt);
+  draw();
+  requestAnimationFrame(loop);
+}
+
+function start() { if (!running) reset(); }
+
+addEventListener('keydown', e => {
+  keys[e.key.length === 1 ? e.key.toLowerCase() : e.key] = true;
+  if (e.code === 'Space') { e.preventDefault(); start(); }
+});
+addEventListener('keyup', e => { keys[e.key.length === 1 ? e.key.toLowerCase() : e.key] = false; });
+
+function pointerTo(e) {
+  const rect = canvas.getBoundingClientRect();
+  basket.x = (e.clientX - rect.left) * (W / rect.width);
+}
+canvas.addEventListener('pointermove', pointerTo);
+canvas.addEventListener('pointerdown', e => { pointerTo(e); start(); });
+
+apples = []; running = false; over = false; last = performance.now();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
